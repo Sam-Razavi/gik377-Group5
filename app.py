@@ -1,10 +1,13 @@
-from flask import Flask
+from fastapi import FastAPI
 
-app = Flask(__name__, template_folder="frontend/templates", static_folder="frontend/static")
+app = FastAPI()
 
-@app.route("/")
-def index():
-    return "Nordic Digital Solutions - UNESCO World Heritage Service"
 
-if __name__ == "__main__":
-    app.run(debug=True)
+@app.get("/")
+def read_root():
+    return {"message": "Backend is running"}
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
