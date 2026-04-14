@@ -1,5 +1,11 @@
 from fastapi import FastAPI
 
+from core.database import Base, engine
+from services.auth.models import User
+
+
+Base.metadata.create_all(bind=engine)
+
 app = FastAPI()
 
 
