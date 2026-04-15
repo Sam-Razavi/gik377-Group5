@@ -1,10 +1,23 @@
-from flask import Flask
+from fastapi import FastAPI
 
-app = Flask(__name__, template_folder="frontend/templates", static_folder="frontend/static")
+from core.database import Base, engine
+from services.auth.models import User
+from services.auth.router import router as auth_router
 
-@app.route("/")
-def index():
-    return "Nordic Digital Solutions - UNESCO World Heritage Service"
 
-if __name__ == "__main__":
-    app.run(debug=True)
+Base.metadata.create_all(bind=engine)
+
+app = FastAPI()
+
+
+@app.get("/")
+def read_root():
+    return {"message": "Backend is running"}
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+
+app.include_router(auth_router, prefix="/auth", tags=["auth"])
