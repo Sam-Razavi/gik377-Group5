@@ -1,12 +1,16 @@
-from flask import Flask
-from services.unesco.routes import unesco_bp
+Base.metadata.create_all(bind=engine)
 
-app = Flask(__name__, template_folder="frontend/templates", static_folder="frontend/static")
-app.register_blueprint(unesco_bp)
+app = FastAPI()
 
-@app.route("/")
-def index():
-    return "Nordic Digital Solutions - UNESCO World Heritage Service"
 
-if __name__ == "__main__":
-    app.run(debug=True)
+@app.get("/")
+def read_root():
+    return {"message": "Backend is running"}
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+
+app.include_router(auth_router, prefix="/auth", tags=["auth"])
