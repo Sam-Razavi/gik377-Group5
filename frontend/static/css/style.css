@@ -1,0 +1,116 @@
+:root {
+   --primary: #1a365d; /* Mörkblå*/
+   --accent: #3182ce;
+   --bg: #c3d2dd;
+   --card-bg: #ffffff;
+   --text: #2d3748;
+   --border: #e2e8f0;
+}
+
+body {
+   font-family: "Inter", system-ui, -apple-system, sans-serif;
+   background-color: var(--bg);
+   color: var(--text);
+   margin: 0;
+   line-height: 1.5;
+}
+
+/* Navigation */
+.main-nav {
+   background: var(--primary);
+   color: white;
+   padding: 1rem 0;
+   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.nav-container {
+   max-width: 1200px;
+   margin: 0 auto;
+   display: flex;
+   justify-content: space-between;
+   align-items: center;
+   padding: 0 20px;
+}
+
+.brand {
+   font-weight: 800;
+   font-size: 1.2rem;
+   text-transform: uppercase;
+}
+.brand-sub {
+   font-weight: 300;
+   color: #a0aec0;
+}
+
+/* Dashboard Layout (K7) */
+.dashboard {
+   max-width: 1200px;
+   margin: 2rem auto;
+   padding: 0 20px;
+   display: grid;
+   grid-template-columns: 1fr;
+   gap: 20px;
+}
+
+@media (min-width: 992px) {
+   .dashboard {
+      grid-template-columns: 2fr 1fr;
+   }
+}
+
+/* Moduler & Cards */
+.card {
+   background: var(--card-bg);
+   border-radius: 12px;
+   border: 1px solid var(--border);
+   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+   overflow: hidden;
+   padding-left: 2rem;
+}
+
+.module-header {
+   border-bottom: 1px solid var(--border);
+}
+
+.badge {
+   font-size: 0.7rem;
+   background: #ebf8ff;
+   color: #2b6cb0;
+   padding: 2px 8px;
+   border-radius: 4px;
+   text-transform: uppercase;
+   font-weight: bold;
+}
+
+.visual-area {
+   background: #edf2f7;
+   height: 450px;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   color: #718096;
+   font-style: italic;
+}
+
+/* Knappar och Inputs */
+.btn-primary {
+   background: var(--accent);
+   color: white;
+   border: none;
+   padding: 12px;
+   border-radius: 6px;
+   font-weight: 600;
+   cursor: pointer;
+   transition: background 0.2s;
+}
+
+.btn-primary:hover {
+   background: #2c5282;
+}
+
+.input-main {
+   padding: 10px;
+   border: 1px solid var(--border);
+   border-radius: 6px;
+   margin-bottom: 10px;
+}
