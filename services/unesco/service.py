@@ -1,3 +1,60 @@
 # Ansvarig: Sonia Tolouifar
 # Modul: UNESCO-data & Karttjänst
 # Hämtar världsarvsdata från UNESCO API och hanterar kartfunktionalitet
+
+import requests
+from math import radians, sin, cos, sqrt, atan2
+
+BASE_URL = "https://data.unesco.org/api/explore/v2.1/catalog/datasets/whc001/records"
+
+BORLANGE_LAT = 60.4858
+BORLANGE_LON = 15.4358
+DEFAULT_RADIUS_KM = 150
+
+
+def get_sites(limit=100, offset=0):
+    """Hämtar världsarvssajter från UNESCO API."""
+    params = {
+        "limit": limit,
+        "offset": offset,
+        "select": "name_en,short_description_en,category,states_names,region,coordinates,date_inscribed,main_image_url,id_no"
+    }
+    response = requests.get(BASE_URL, params=params)
+    response.raise_for_status()
+    return response.json().get("results", [])
+
+
+def _haversine_km(lat1, lon1, lat2, lon2):
+    """Beräknar avstånd i km mellan två koordinater."""
+    R = 6371
+    dlat = radians(lat2 - lat1)
+    dlon = radians(lon2 - lon1)
+    a = sin(dlat / 2) ** 2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon / 2) ** 2
+    return R * 2 * atan2(sqrt(a), sqrt(1 - a))
+
+
+def get_sites_near(lat=BORLANGE_LAT, lon=BORLANGE_LON, radius_km=DEFAULT_RADIUS_KM):
+    """Returnerar världsarvssajter inom en given radie (km) från en koordinat."""
+    all_sites = []
+    offset = 0
+    while True:
+        batch = get_sites(limit=100, offset=offset)
+        if not batch:
+            break
+        all_sites.extend(batch)
+        offset += 100
+        if len(batch) < 100:
+            break
+
+    nearby = []
+    for site in all_sites:
+        coords = site.get("coordinates")
+        if not coords:
+            continue
+        dist = _haversine_km(lat, lon, coords["lat"], coords["lon"])
+        if dist <= radius_km:
+            site["distance_km"] = round(dist, 1)
+            nearby.append(site)
+
+    nearby.sort(key=lambda s: s["distance_km"])
+    return nearby
