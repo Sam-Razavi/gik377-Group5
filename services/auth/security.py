@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, UTC
 
 import bcrypt
-from jose import jwt
+from jose import JWTError, jwt
 
 from core.config import settings
 
@@ -34,3 +34,15 @@ def create_access_token(data: dict) -> str:
         algorithm=settings.algorithm,
     )
     return encoded_jwt
+
+
+def decode_access_token(token: str) -> dict | None:
+    try:
+        payload = jwt.decode(
+            token,
+            settings.secret_key,
+            algorithms=[settings.algorithm],
+        )
+        return payload
+    except JWTError:
+        return None

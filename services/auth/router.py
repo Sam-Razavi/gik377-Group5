@@ -1,13 +1,19 @@
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from core.dependencies import get_db
 from services.auth.schemas import UserCreate, UserLogin, UserResponse, Token
-from services.auth.service import register_user, authenticate_user
+from services.auth.service import (
+    authenticate_user,
+    get_current_user_from_token,
+    register_user,
+)
 from services.auth.security import create_access_token
 
 
 router = APIRouter()
+security = HTTPBearer()
 
 
 @router.post("/register", response_model=UserResponse)
@@ -32,3 +38,14 @@ def login(user_data: UserLogin, db: Session = Depends(get_db)):
         "access_token": access_token,
         "token_type": "bearer",
     }
+
+
+@router.get("/me", response_model=UserResponse)
+def get_me(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(get_db),
+):
+    token = credentials.credentials
+    user = get_current_user_from_token(db, token)
+
+    return user
