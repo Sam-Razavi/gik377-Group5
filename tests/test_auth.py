@@ -35,3 +35,33 @@ def test_register_user():
     assert data["is_active"] is True
     assert "id" in data
     assert "created_at" in data
+
+
+def test_login_user():
+    unique_email = f"login_{uuid4().hex}@example.com"
+    password = "test1234"
+
+    register_response = client.post(
+        "/auth/register",
+        json={
+            "email": unique_email,
+            "password": password,
+            "full_name": "Login User",
+        },
+    )
+
+    assert register_response.status_code == 200
+
+    login_response = client.post(
+        "/auth/login",
+        json={
+            "email": unique_email,
+            "password": password,
+        },
+    )
+
+    assert login_response.status_code == 200
+
+    data = login_response.json()
+    assert "access_token" in data
+    assert data["token_type"] == "bearer"
