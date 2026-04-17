@@ -132,3 +132,45 @@ def test_get_current_user_with_token():
     assert data["email"] == unique_email
     assert data["full_name"] == "Me User"
     assert data["is_active"] is True
+
+
+def test_login_with_wrong_password_fails():
+    unique_email = f"wrongpass_{uuid4().hex}@example.com"
+
+    register_response = client.post(
+        "/auth/register",
+        json={
+            "email": unique_email,
+            "password": "correct123",
+            "full_name": "Wrong Password User",
+        },
+    )
+
+    assert register_response.status_code == 200
+
+    login_response = client.post(
+        "/auth/login",
+        json={
+            "email": unique_email,
+            "password": "wrong123",
+        },
+    )
+
+    assert login_response.status_code == 401
+    assert login_response.json()["detail"] == "Invalid email or password"
+
+
+def test_get_current_user_without_token_fails():
+    response = client.get("/auth/me")
+
+    assert response.status_code == 401
+
+
+def test_get_current_user_with_invalid_token_fails():
+    response = client.get(
+        "/auth/me",
+        headers={"Authorization": "Bearer invalid-token"},
+    )
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Invalid or expired token"
