@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Auth Test Frontend</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            navy: {
+              900: "#0a1224",
+              800: "#0f1b35",
+              700: "#142445",
+              600: "#1b315c"
+            }
+          },
+          boxShadow: {
+            soft: "0 10px 30px rgba(0,0,0,0.25)"
+          }
+        }
+      }
+    };
+  </script>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-navy-900 via-navy-800 to-slate-950 text-white">
+  <div class="max-w-6xl mx-auto px-6 py-10">
+    <div class="mb-8">
+      <h1 class="text-3xl md:text-4xl font-bold tracking-tight">Auth Test Frontend</h1>
+      <p class="text-slate-300 mt-2">Testing backend UI.</p>
+    </div>
+
+    <div id="message-box" class="hidden mb-6 rounded-2xl border px-4 py-3 text-sm"></div>
+
+    <div class="grid md:grid-cols-2 gap-6">
+      <section class="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl p-6 shadow-soft">
+        <h2 class="text-xl font-semibold mb-4">Register</h2>
+        <div class="space-y-4">
+          <input
+            id="reg-name"
+            type="text"
+            placeholder="Full name"
+            class="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 outline-none focus:ring-2 focus:ring-blue-400"
+          />
+          <input
+            id="reg-email"
+            type="email"
+            placeholder="Email"
+            class="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 outline-none focus:ring-2 focus:ring-blue-400"
+          />
+          <input
+            id="reg-password"
+            type="password"
+            placeholder="Password"
+            class="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 outline-none focus:ring-2 focus:ring-blue-400"
+          />
+          <button
+            id="register-btn"
+            onclick="registerUser()"
+            class="w-full rounded-xl bg-blue-500 hover:bg-blue-400 transition px-4 py-3 font-medium flex items-center justify-center gap-2"
+          >
+            <span>Register</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl p-6 shadow-soft">
+        <h2 class="text-xl font-semibold mb-4">Login</h2>
+        <div class="space-y-4">
+          <input
+            id="login-email"
+            type="email"
+            placeholder="Email"
+            class="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 outline-none focus:ring-2 focus:ring-blue-400"
+          />
+          <input
+            id="login-password"
+            type="password"
+            placeholder="Password"
+            class="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 outline-none focus:ring-2 focus:ring-blue-400"
+          />
+          <button
+            id="login-btn"
+            onclick="loginUser()"
+            class="w-full rounded-xl bg-emerald-500 hover:bg-emerald-400 transition px-4 py-3 font-medium flex items-center justify-center gap-2"
+          >
+            <span>Login</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl p-6 shadow-soft">
+        <h2 class="text-xl font-semibold mb-4">Current User</h2>
+        <div class="space-y-4">
+          <button
+            id="me-btn"
+            onclick="getCurrentUser()"
+            class="w-full rounded-xl bg-indigo-500 hover:bg-indigo-400 transition px-4 py-3 font-medium flex items-center justify-center gap-2"
+          >
+            <span>Get /auth/me</span>
+          </button>
+
+          <button
+            id="logout-btn"
+            onclick="logoutUser()"
+            class="w-full rounded-xl bg-slate-600 hover:bg-slate-500 transition px-4 py-3 font-medium"
+          >
+            Logout
+          </button>
+
+          <div class="text-sm text-slate-300">
+            Stored token:
+            <span id="token-status" class="font-medium text-white">No token yet</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl p-6 shadow-soft">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-xl font-semibold">BankID</h2>
+          <span
+            id="bankid-live-status"
+            class="text-xs px-3 py-1 rounded-full bg-white/10 text-slate-200"
+          >
+            Idle
+          </span>
+        </div>
+
+        <div class="space-y-4">
+          <button
+            id="bankid-initiate-btn"
+            onclick="startBankID()"
+            class="w-full rounded-xl bg-sky-500 hover:bg-sky-400 transition px-4 py-3 font-medium flex items-center justify-center gap-2"
+          >
+            <span>Initiate BankID</span>
+          </button>
+
+          <button
+            id="bankid-status-btn"
+            onclick="checkBankIDStatus()"
+            class="w-full rounded-xl bg-violet-500 hover:bg-violet-400 transition px-4 py-3 font-medium flex items-center justify-center gap-2"
+          >
+            <span>Check BankID Status</span>
+          </button>
+
+          <button
+            id="bankid-stop-btn"
+            onclick="stopBankIDPolling()"
+            class="w-full rounded-xl bg-rose-500 hover:bg-rose-400 transition px-4 py-3 font-medium"
+          >
+            Stop Polling
+          </button>
+
+          <div class="text-sm text-slate-300">
+            Current orderRef:
+            <span id="order-ref-status" class="font-medium text-white">None</span>
+          </div>
+
+          <div class="text-sm text-slate-300">
+            Polling:
+            <span id="polling-status" class="font-medium text-white">Stopped</span>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <section class="mt-6 bg-black/30 border border-white/10 rounded-2xl p-6 shadow-soft">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-xl font-semibold">Output</h2>
+        <button
+          onclick="clearOutput()"
+          class="rounded-lg bg-white/10 hover:bg-white/20 transition px-3 py-2 text-sm"
+        >
+          Clear
+        </button>
+      </div>
+      <pre
+        id="output"
+        class="whitespace-pre-wrap break-words text-sm text-slate-200 bg-black/20 rounded-xl p-4 min-h-[220px] overflow-auto"
+      ></pre>
+    </section>
+  </div>
+
+  <script src="./script.js"></script>
+</body>
+</html>
