@@ -3,7 +3,15 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from core.dependencies import get_db
-from services.auth.schemas import UserCreate, UserLogin, UserResponse, Token
+from services.auth.schemas import (
+    UserCreate,
+    UserLogin,
+    UserResponse,
+    Token,
+    BankIDInitiateResponse,
+    BankIDStatusResponse,
+)
+
 from services.auth.service import (
     authenticate_user,
     get_current_user_from_token,
@@ -51,13 +59,13 @@ def get_me(
 
     return user
 
-@router.post("/bankid/initiate")
+@router.post("/bankid/initiate", response_model=BankIDInitiateResponse)
 async def bankid_initiate():
     result = await initiate_bankid_auth()
     return result
 
 
-@router.get("/bankid/status/{order_ref}")
+@router.get("/bankid/status/{order_ref}", response_model=BankIDStatusResponse)
 async def bankid_status(order_ref: str):
     result = await collect_bankid_status(order_ref)
     return result

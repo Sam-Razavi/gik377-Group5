@@ -28,3 +28,19 @@ class UserResponse(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
+
+
+class BankIDInitiateResponse(BaseModel):
+    orderRef: str
+    autoStartToken: str
+    qrStartToken: str
+    qrStartSecret: str
+
+
+class BankIDStatusResponse(BaseModel):
+    orderRef: str | None = None
+    status: str
+    hintCode: str | None = None
+    completionData: dict | None = None
+    errorCode: str | None = None
+    details: str | None = None
