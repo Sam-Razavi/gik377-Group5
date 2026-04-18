@@ -174,3 +174,37 @@ def test_get_current_user_with_invalid_token_fails():
 
     assert response.status_code == 401
     assert response.json()["detail"] == "Invalid or expired token"
+
+def test_bankid_status_complete_creates_user_and_returns_token(monkeypatch):
+    async def mock_collect_bankid_status(order_ref: str):
+        return {
+            "status": "complete",
+            "hintCode": None,
+            "orderRef": order_ref,
+            "completionData": {
+                "user": {
+                    "personalNumber": "199001011234",
+                    "name": "BankID Test User",
+                }
+            },
+        }
+
+    monkeypatch.setattr(
+        "services.auth.router.collect_bankid_status",
+        mock_collect_bankid_status,
+    )
+
+    response = client.get("/auth/bankid/status/test-order-ref")
+
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["status"] == "complete"
+    assert data["orderRef"] == "test-order-ref"
+    assert "access_token" in data
+    assert data["token_type"] == "bearer"
+
+    user = data["user"]
+    assert user["email"] == "bankid_199001011234@example.com"
+    assert user["full_name"] == "BankID Test User"
+    assert user["is_active"] is True

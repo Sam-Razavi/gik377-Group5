@@ -9,7 +9,11 @@ from services.auth.repository import (
     get_user_by_email,
 )
 from services.auth.schemas import UserCreate
-from services.auth.security import decode_access_token, verify_password
+from services.auth.security import (
+    create_access_token,
+    decode_access_token,
+    verify_password,
+)
 
 
 def register_user(db: Session, user_data: UserCreate) -> User:
@@ -76,3 +80,35 @@ def get_current_user_from_token(db: Session, token: str) -> User:
         )
 
     return user
+
+def handle_completed_bankid_login(
+    db: Session,
+    personal_number: str,
+    full_name: str | None = None,
+) -> dict:
+    user = get_or_create_bankid_user(
+        db=db,
+        personal_number=personal_number,
+        full_name=full_name,
+    )
+
+    access_token = create_access_token(data={"sub": user.email})
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": user,
+    }
+
+def login_user(db: Session, email: str, password: str) -> dict:
+    user = authenticate_user(db, email, password)
+
+    if not user:
+        return None
+
+    access_token = create_access_token(data={"sub": user.email})
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+    }

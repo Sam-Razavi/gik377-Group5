@@ -3,28 +3,21 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from core.dependencies import get_db
-
+from services.auth.bankid import collect_bankid_status, initiate_bankid_auth
 from services.auth.schemas import (
+    BankIDInitiateResponse,
+    BankIDLoginResponse,
+    Token,
     UserCreate,
     UserLogin,
     UserResponse,
-    Token,
-    BankIDInitiateRequest,
-    BankIDInitiateResponse,
-    BankIDStatusResponse,
-    BankIDLoginResponse,
 )
-
 from services.auth.service import (
-    authenticate_user,
     get_current_user_from_token,
-    get_or_create_bankid_user,
+    handle_completed_bankid_login,
+    login_user,
     register_user,
 )
-
-from services.auth.security import create_access_token
-from services.auth.bankid import initiate_bankid_auth, collect_bankid_status
-
 
 router = APIRouter()
 security = HTTPBearer()
@@ -41,17 +34,12 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=Token)
 def login(user_data: UserLogin, db: Session = Depends(get_db)):
-    user = authenticate_user(db, user_data.email, user_data.password)
+    result = login_user(db, user_data.email, user_data.password)
 
-    if not user:
+    if not result:
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
-    access_token = create_access_token(data={"sub": user.email})
-
-    return {
-        "access_token": access_token,
-        "token_type": "bearer",
-    }
+    return result
 
 
 @router.get("/me", response_model=UserResponse)
@@ -61,8 +49,8 @@ def get_me(
 ):
     token = credentials.credentials
     user = get_current_user_from_token(db, token)
-
     return user
+
 
 @router.post("/bankid/initiate", response_model=BankIDInitiateResponse)
 async def bankid_initiate():
@@ -96,20 +84,18 @@ async def bankid_status(order_ref: str, db: Session = Depends(get_db)):
             detail="BankID completed but no personal number was returned",
         )
 
-    user = get_or_create_bankid_user(
+    login_result = handle_completed_bankid_login(
         db=db,
         personal_number=personal_number,
         full_name=full_name,
     )
-
-    access_token = create_access_token(data={"sub": user.email})
 
     return {
         "status": result.get("status"),
         "hintCode": result.get("hintCode"),
         "orderRef": result.get("orderRef"),
         "completionData": completion_data,
-        "access_token": access_token,
-        "token_type": "bearer",
-        "user": user,
+        "access_token": login_result["access_token"],
+        "token_type": login_result["token_type"],
+        "user": login_result["user"],
     }
