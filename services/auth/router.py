@@ -10,6 +10,7 @@ from services.auth.service import (
     register_user,
 )
 from services.auth.security import create_access_token
+from services.auth.bankid import initiate_bankid_auth, collect_bankid_status
 
 
 router = APIRouter()
@@ -49,3 +50,14 @@ def get_me(
     user = get_current_user_from_token(db, token)
 
     return user
+
+@router.post("/bankid/initiate")
+async def bankid_initiate():
+    result = await initiate_bankid_auth()
+    return result
+
+
+@router.get("/bankid/status/{order_ref}")
+async def bankid_status(order_ref: str):
+    result = await collect_bankid_status(order_ref)
+    return result

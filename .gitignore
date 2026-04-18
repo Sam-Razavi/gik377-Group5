@@ -1,9 +1,15 @@
 # Python
 __pycache__/
 *.py[cod]
-*.env
+.env
 venv/
 .venv/
 
 # OS
 .DS_Store
+
+# Certificates
+certs/
+*.pem
+*.p12
+*.pfx
