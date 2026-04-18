@@ -56,3 +56,6 @@ class BankIDLoginResponse(BaseModel):
     completionData: dict | None = None
     errorCode: str | None = None
     details: str | None = None
+
+class BankIDInitiateRequest(BaseModel):
+    personal_number: str | None = None

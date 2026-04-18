@@ -9,6 +9,7 @@ from services.auth.schemas import (
     UserLogin,
     UserResponse,
     Token,
+    BankIDInitiateRequest,
     BankIDInitiateResponse,
     BankIDStatusResponse,
     BankIDLoginResponse,

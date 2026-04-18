@@ -41,7 +41,7 @@ def create_bankid_user(
     personal_number: str,
     full_name: str | None = None,
 ) -> User:
-    synthetic_email = f"bankid_{personal_number}@bankid.local"
+    synthetic_email = f"bankid_{personal_number}@example.com"
     random_password = uuid4().hex
 
     new_user = User(
