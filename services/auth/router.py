@@ -3,6 +3,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from core.dependencies import get_db
+
 from services.auth.schemas import (
     UserCreate,
     UserLogin,
@@ -10,13 +11,16 @@ from services.auth.schemas import (
     Token,
     BankIDInitiateResponse,
     BankIDStatusResponse,
+    BankIDLoginResponse,
 )
 
 from services.auth.service import (
     authenticate_user,
     get_current_user_from_token,
+    get_or_create_bankid_user,
     register_user,
 )
+
 from services.auth.security import create_access_token
 from services.auth.bankid import initiate_bankid_auth, collect_bankid_status
 
@@ -65,7 +69,46 @@ async def bankid_initiate():
     return result
 
 
-@router.get("/bankid/status/{order_ref}", response_model=BankIDStatusResponse)
-async def bankid_status(order_ref: str):
+@router.get("/bankid/status/{order_ref}", response_model=BankIDLoginResponse)
+async def bankid_status(order_ref: str, db: Session = Depends(get_db)):
     result = await collect_bankid_status(order_ref)
-    return result
+
+    if result.get("status") != "complete":
+        return {
+            "status": result.get("status"),
+            "hintCode": result.get("hintCode"),
+            "orderRef": result.get("orderRef"),
+            "completionData": result.get("completionData"),
+            "errorCode": result.get("errorCode"),
+            "details": result.get("details"),
+        }
+
+    completion_data = result.get("completionData", {})
+    user_data = completion_data.get("user", {})
+
+    personal_number = user_data.get("personalNumber")
+    full_name = user_data.get("name")
+
+    if not personal_number:
+        raise HTTPException(
+            status_code=500,
+            detail="BankID completed but no personal number was returned",
+        )
+
+    user = get_or_create_bankid_user(
+        db=db,
+        personal_number=personal_number,
+        full_name=full_name,
+    )
+
+    access_token = create_access_token(data={"sub": user.email})
+
+    return {
+        "status": result.get("status"),
+        "hintCode": result.get("hintCode"),
+        "orderRef": result.get("orderRef"),
+        "completionData": completion_data,
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": user,
+    }

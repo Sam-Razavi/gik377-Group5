@@ -44,3 +44,15 @@ class BankIDStatusResponse(BaseModel):
     completionData: dict | None = None
     errorCode: str | None = None
     details: str | None = None
+
+
+class BankIDLoginResponse(BaseModel):
+    status: str
+    hintCode: str | None = None
+    access_token: str | None = None
+    token_type: str | None = None
+    user: UserResponse | None = None
+    orderRef: str | None = None
+    completionData: dict | None = None
+    errorCode: str | None = None
+    details: str | None = None
