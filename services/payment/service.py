@@ -1,55 +1,163 @@
 """Betaltjänst.
 
 Ansvarig: Nina Bentmosse
-Modul: Betaltjänst
+Modul: services/payment/service.py
 
-Provider väljs via PAYMENT_PROVIDER i .env:
-    stripe  — Stripe i testläge (standard)
-    mock    — enkel in-memory mock
+Stöder två betalmetoder:
+    method="card"     — Stripe i testläge (Visa & Mastercard), standard
+    method="invoice"  — Simulerad fakturalösning (mock, ingen extern API)
+
+Konfig via .env:
+    PAYMENT_PROVIDER=stripe
+    STRIPE_SECRET_KEY=sk_test_...
 
 Publika metoder:
-- PaymentService.create_subscription(user_id, plan_id, method="card") -> dict
-- PaymentService.cancel_subscription(subscription_id, method="card") -> bool
-- PaymentService.get_subscription(subscription_id, method="card") -> dict | None
+    PaymentService.create_subscription(user_id, plan_id, method="card") -> dict
+    PaymentService.cancel_subscription(subscription_id, method="card")  -> bool
+    PaymentService.get_subscription(subscription_id, method="card")     -> dict | None
 """
 
-from typing import Dict, Optional
-from .providers import build_provider, SwishProvider
+from __future__ import annotations
+import logging
+from typing import Optional
+from .providers import build_provider, InvoiceProvider
+
+logger = logging.getLogger(__name__)
+
+# Definierar vilka betalmetoder som är tillåtna
+# "card" = Stripe kortbetalning (Visa/Mastercard)
+# "invoice" = Simulerad fakturalösning
+SUPPORTED_METHODS = {"card", "invoice"}
 
 
 class PaymentService:
-    """Betaltjänst med utbytbara providers (Stripe, Swish, Mock).
+    """Betaltjänst med Stripe (card) och faktura (invoice) som parallella providers.
 
-    method="card"  → Stripe testläge (eller mock-fallback)
-    method="swish" → Swish simulerad mock
+    Välj betalmetod per anrop via method-parametern:
+        method="card"    — Stripe i testläge (standard)
+        method="invoice" — Simulerad faktura
     """
 
-    def __init__(self):
-        # Bygg kortprovider (Stripe eller mock) baserat på PAYMENT_PROVIDER i .env
+    def __init__(self) -> None:
+        # Bygger kortprovidern — Stripe om konfigurerad, annars MockProvider
         self._card_provider = build_provider()
-        # Swish är alltid en simulerad mock – ingen riktig API-koppling
-        self._swish_provider = SwishProvider()
 
-    def create_subscription(self, user_id: str, plan_id: str, method: str = "card") -> Dict:
-        # Skicka Swish-betalning till Swish-mock
-        if method == "swish":
-            return self._swish_provider.create_subscription(user_id, plan_id)
-        # Annars skickas kortbetalning till Stripe (eller mock-fallback)
-        return self._card_provider.create_subscription(user_id, plan_id)
+        # Fakturaprovidern är alltid tillgänglig (simulerad, kräver ingen config)
+        self._invoice_provider = InvoiceProvider()
 
-    def cancel_subscription(self, subscription_id: str, method: str = "card") -> bool:
-        # Avbryt Swish-prenumeration i mock-lagret
-        if method == "swish":
-            return self._swish_provider.cancel_subscription(subscription_id)
-        # Annars avbryt kortprenumeration via Stripe (eller mock-fallback)
-        return self._card_provider.cancel_subscription(subscription_id)
+        # Loggar vilka providers som är aktiva vid uppstart
+        logger.info(
+            "PaymentService initierad – kort: %s, faktura: %s",
+            type(self._card_provider).__name__,
+            type(self._invoice_provider).__name__,
+        )
 
-    def get_subscription(self, subscription_id: str, method: str = "card") -> Optional[Dict]:
-        # Hämta Swish-prenumeration från mock-lagret
-        if method == "swish":
-            return self._swish_provider.get_subscription(subscription_id)
-        # Annars hämta kortprenumeration från Stripe (eller mock-fallback)
-        return self._card_provider.get_subscription(subscription_id)
+    # ------------------------------------------------------------------
+    # Publikt API
+    # ------------------------------------------------------------------
+
+    def create_subscription(
+        self, user_id: str, plan_id: str, method: str = "card"
+    ) -> dict:
+        """Skapa en ny prenumeration.
+
+        Args:
+            user_id: Användarens unika ID.
+            plan_id: Prenumerationsplanens ID (t.ex. "plan_basic").
+            method:  Betalmetod – "card" (Stripe) eller "invoice".
+
+        Returns:
+            Dict med prenumerationsdata inkl. "id" och "status".
+
+        Raises:
+            ValueError: Om method inte är "card" eller "invoice".
+        """
+        # Kontrollerar att method är "card" eller "invoice" — kastar ValueError annars
+        self._validate_method(method)
+
+        # Hämtar rätt provider baserat på method
+        provider = self._get_provider(method)
+
+        # Skapar prenumerationen via vald provider
+        record = provider.create_subscription(user_id, plan_id)
+
+        # Loggar att en prenumeration skapades
+        logger.info(
+            "Prenumeration skapad: id=%s, user=%s, plan=%s, method=%s",
+            record.get("id"), user_id, plan_id, method,
+        )
+        return record
+
+    def cancel_subscription(
+        self, subscription_id: str, method: str = "card"
+    ) -> bool:
+        """Avbryt en befintlig prenumeration.
+
+        Args:
+            subscription_id: Prenumerationens ID.
+            method:          Betalmetod – "card" eller "invoice".
+
+        Returns:
+            True om avbruten, False om prenumerationen inte hittades.
+
+        Raises:
+            ValueError: Om method inte är "card" eller "invoice".
+        """
+        # Kontrollerar att method är giltig innan vi försöker avbryta
+        self._validate_method(method)
+
+        # Hämtar rätt provider och avbryter prenumerationen
+        ok = self._get_provider(method).cancel_subscription(subscription_id)
+
+        # Loggar resultatet
+        logger.info(
+            "Avbokningsförsök: id=%s, method=%s, resultat=%s",
+            subscription_id, method, ok,
+        )
+        return ok
+
+    def get_subscription(
+        self, subscription_id: str, method: str = "card"
+    ) -> Optional[dict]:
+        """Hämta en prenumeration.
+
+        Args:
+            subscription_id: Prenumerationens ID.
+            method:          Betalmetod – "card" eller "invoice".
+
+        Returns:
+            Dict med prenumerationsdata, eller None om den inte hittas.
+
+        Raises:
+            ValueError: Om method inte är "card" eller "invoice".
+        """
+        # Kontrollerar att method är giltig
+        self._validate_method(method)
+
+        # Returnerar prenumerationen från rätt provider
+        return self._get_provider(method).get_subscription(subscription_id)
+
+    # ------------------------------------------------------------------
+    # Privata hjälpmetoder
+    # ------------------------------------------------------------------
+
+    def _validate_method(self, method: str) -> None:
+        """Kasta ValueError om betalmetoden inte stöds."""
+        # Om method inte finns i SUPPORTED_METHODS kastas ett tydligt felmeddelande
+        if method not in SUPPORTED_METHODS:
+            raise ValueError(
+                f"Betalmetoden '{method}' stöds inte. "
+                f"Välj ett av: {', '.join(sorted(SUPPORTED_METHODS))}"
+            )
+
+    def _get_provider(self, method: str):
+        """Returnera rätt provider baserat på betalmetod."""
+        # Faktura-betalningar hanteras av InvoiceProvider
+        if method == "invoice":
+            return self._invoice_provider
+
+        # Kortbetalningar hanteras av Stripe (eller mock om Stripe ej konfigurerad)
+        return self._card_provider
 
 
-__all__ = ["PaymentService"]
+__all__ = ["PaymentService", "SUPPORTED_METHODS"]
