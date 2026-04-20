@@ -17,6 +17,4 @@ async def root():
     }
 
 if __name__ == "__main__":
-    # FastAPI körs oftast med uvicorn på port 8000 som standard, 
-    # men vi kan sätta den till 5000 för att matcha din gamla setup.
     uvicorn.run(app, host="127.0.0.1", port=5000)
