@@ -1,116 +1,158 @@
+/* Grundinställningar */
 :root {
-   --primary: #1a365d; /* Mörkblå*/
-   --accent: #3182ce;
-   --bg: #c3d2dd;
-   --card-bg: #ffffff;
-   --text: #2d3748;
-   --border: #e2e8f0;
+   --black: #1a1a1a;
+   --grey: #f4f4f4;
+   --border: #ddd;
+   --accent: #b8860b; /* Guld/UNESCO-ton */
 }
 
 body {
-   font-family: "Inter", system-ui, -apple-system, sans-serif;
-   background-color: var(--bg);
-   color: var(--text);
+   font-family: "Georgia", serif; /* Tidningskänsla */
    margin: 0;
-   line-height: 1.5;
+   background-color: #fff;
+   color: var(--black);
 }
 
-/* Navigation */
-.main-nav {
-   background: var(--primary);
-   color: white;
-   padding: 1rem 0;
-   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+h1,
+h2,
+h3 {
+   font-family: "Georgia", serif;
+   font-weight: 700;
+   letter-spacing: -1px; /* Ger en modernare look */
 }
 
-.nav-container {
+.hero h1 {
+   font-size: 3.5rem;
+   border-bottom: 3px solid #000; /* Tjockt streck under rubriken likt tidningar */
+   display: inline-block;
+   padding-bottom: 10px;
+   margin-bottom: 20px;
+}
+
+.site-card {
+   border-bottom: 1px solid #eee; /* Linje mellan objekten */
+   padding: 20px 0;
+   transition: background 0.3s;
+}
+
+.site-card:hover {
+   background-color: #fcfcfc; /* Subtil effekt vid hovring */
+}
+
+.site-card h3 {
+   margin: 0 0 5px 0;
+   color: #1a1a1a;
+}
+
+.site-card p {
+   font-size: 0.9rem;
+   color: #666;
+   margin: 0;
+}
+.container {
    max-width: 1200px;
    margin: 0 auto;
+   padding: 0 20px;
+}
+
+/* Navigering */
+.top-nav {
+   border-bottom: 1px solid var(--border);
+   padding: 15px 0;
+}
+
+.nav-content {
    display: flex;
    justify-content: space-between;
    align-items: center;
-   padding: 0 20px;
 }
 
-.brand {
-   font-weight: 800;
-   font-size: 1.2rem;
-   text-transform: uppercase;
-}
-.brand-sub {
-   font-weight: 300;
-   color: #a0aec0;
-}
-
-/* Dashboard Layout (K7) */
-.dashboard {
-   max-width: 1200px;
-   margin: 2rem auto;
-   padding: 0 20px;
-   display: grid;
-   grid-template-columns: 1fr;
-   gap: 20px;
-}
-
-@media (min-width: 992px) {
-   .dashboard {
-      grid-template-columns: 2fr 1fr;
-   }
-}
-
-/* Moduler & Cards */
-.card {
-   background: var(--card-bg);
-   border-radius: 12px;
-   border: 1px solid var(--border);
-   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-   overflow: hidden;
-   padding-left: 2rem;
-}
-
-.module-header {
+/* Hero - Inspirerad av bilden */
+.hero {
+   padding: 80px 0;
+   text-align: center;
    border-bottom: 1px solid var(--border);
+   margin-bottom: 40px;
 }
 
-.badge {
-   font-size: 0.7rem;
-   background: #ebf8ff;
-   color: #2b6cb0;
-   padding: 2px 8px;
-   border-radius: 4px;
+.kicker {
+   text-transform: uppercase;
+   font-size: 12px;
+   letter-spacing: 2px;
+   font-family: sans-serif;
+   color: var(--accent);
+}
+
+h1 {
+   font-size: 3.5rem;
+   margin: 10px 0;
+   font-weight: 900;
+}
+
+/* Dashboard Grid */
+.dashboard {
+   display: grid;
+   grid-template-columns: 2fr 1fr;
+   gap: 20px;
+   margin-bottom: 60px;
+}
+
+.card {
+   border: 1px solid var(--border);
+   padding: 30px;
+   position: relative;
+}
+
+.card-label {
+   position: absolute;
+   top: -10px;
+   left: 20px;
+   background: #fff;
+   padding: 0 10px;
+   font-size: 10px;
+   text-transform: uppercase;
+   font-family: sans-serif;
+}
+
+/* Karta */
+#map-placeholder {
+   height: 400px;
+   background-color: var(--grey);
+   display: flex;
+   align-items: center;
+   justify-content: center;
+}
+
+/* Formulär */
+#sms-form {
+   display: flex;
+   flex-direction: column;
+   gap: 15px;
+}
+
+input[type="tel"] {
+   padding: 12px;
+   border: 1px solid var(--border);
+   font-family: sans-serif;
+}
+
+.btn-submit {
+   background: var(--black);
+   color: #fff;
+   padding: 15px;
+   border: none;
+   cursor: pointer;
+   font-family: sans-serif;
    text-transform: uppercase;
    font-weight: bold;
 }
 
-.visual-area {
-   background: #edf2f7;
-   height: 450px;
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   color: #718096;
-   font-style: italic;
-}
-
-/* Knappar och Inputs */
-.btn-primary {
-   background: var(--accent);
-   color: white;
-   border: none;
-   padding: 12px;
-   border-radius: 6px;
-   font-weight: 600;
-   cursor: pointer;
-   transition: background 0.2s;
-}
-
-.btn-primary:hover {
-   background: #2c5282;
-}
-
-.input-main {
-   padding: 10px;
-   border: 1px solid var(--border);
-   border-radius: 6px;
-   margin-bottom: 10px;
+/* Responsivitet för mobiler (Krav K7) */
+@media (max-width: 768px) {
+   .dashboard {
+      grid-template-columns: 1fr;
+   }
+   h1 {
+      font-size: 2.5rem;
+   }
 }
