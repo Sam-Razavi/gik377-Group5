@@ -36,7 +36,9 @@ ADMIN_TOKEN = os.getenv("NOTIFICATION_ADMIN_TOKEN", "")
 # löpt ut kan ett nytt SMS skickas för samma plats.
 COOLDOWN_SECONDS = int(os.getenv("NOTIFICATION_COOLDOWN", "3600"))
 
-# Sökväg till SQLite-databasen
-DB_PATH = os.getenv("NOTIFICATION_DB_PATH", os.path.join(
-    os.path.dirname(__file__), "notification.db"
-))
+# PostgreSQL-anslutning
+PG_HOST = os.getenv("NOTIFICATION_PG_HOST", "localhost")
+PG_PORT = int(os.getenv("NOTIFICATION_PG_PORT", "5432"))
+PG_DATABASE = os.getenv("NOTIFICATION_PG_DATABASE", "notification")
+PG_USER = _require_env("NOTIFICATION_PG_USER")
+PG_PASSWORD = _require_env("NOTIFICATION_PG_PASSWORD")

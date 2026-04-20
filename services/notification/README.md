@@ -2,12 +2,18 @@
 
 Ansvarig: Riyaaq Ali
 
-En fristående modul för att skicka SMS och e-post. Andra grupper kan använda den genom att anropa våra endpoints.
+En fristående, leverantörsneutral modul för att skicka SMS och e-post.
+Andra grupper kan:
+- **anropa vår tjänst** via ett gemensamt HTTP-API (ingen kodändring krävs), eller
+- **byta ut hela modulen** mot sin egen implementation så länge den följer API-kontraktet.
+
+Vilken SMS- eller e-postleverantör som används internt är en implementationsdetalj
+och syns aldrig i svaren – svarsfälten är alltid neutrala (`channel: "sms" | "email"`).
 
 
 ## Hur man kör igång
 
-1. Se till att `.env`-filen finns i notification-mappen med API-nycklar (HelloSMS och SMTP2GO).
+1. Se till att `.env`-filen finns i notification-mappen med API-nycklar (se "Nuvarande implementation" längst ned).
 2. Lägg till detta i `app.py`:
 ```python
 from services.notification import notification_bp
@@ -15,6 +21,27 @@ app.register_blueprint(notification_bp)
 ```
 3. Starta servern med `python3 app.py`.
 4. Testa att det funkar: gå till `http://127.0.0.1:5000/notification/health` – du ska se `{"status": "ok"}`.
+
+
+## API-kontrakt (översikt)
+
+| Endpoint | Metod | Vad den gör |
+|---|---|---|
+| `/notification/send-notification` | POST | Skicka ett SMS eller e-post direkt |
+| `/notification/trigger-notification` | GET | Trigga platsnotis för en prenumerant |
+| `/notification/subscribe` | POST | Registrera en användare |
+| `/notification/unsubscribe` | POST | Avregistrera en användare |
+| `/notification/subscribers` | GET | Lista alla prenumeranter (kräver admin-token) |
+| `/notification/health` | GET | Kolla att tjänsten lever |
+
+Alla svar följer samma mönster:
+```json
+{"success": true, "channel": "sms"}
+{"success": false, "error": "cooldown", "message": "..."}
+```
+
+Fältet `channel` är alltid `"sms"` eller `"email"` – aldrig ett leverantörsnamn.
+Det gör att modulen kan bytas ut utan att konsumenter behöver ändra kod.
 
 
 ## Endpoints
@@ -43,7 +70,7 @@ Skicka med JSON i bodyn:
 
 Svar om det gick bra:
 ```json
-{"success": true, "provider": "hellosms"}
+{"success": true, "channel": "sms"}
 ```
 
 Svar om det gick fel:
@@ -55,7 +82,12 @@ Statuskoder:
 - 200 – Skickat
 - 400 – Något fält saknas eller är ogiltigt
 - 429 – Cooldown, redan skickat nyligen
-- 500 – Providern (HelloSMS/SMTP2GO) svarade inte
+- 500 – Providern svarade inte
+
+Felkoder (fältet `error`):
+- `invalid_type` – `type` är varken `"sms"` eller `"email"`
+- `invalid_recipient` – `to` har fel format
+- `cooldown` – redan notifierad inom cooldown-perioden
 
 
 ### Trigga notifiering baserat på position
@@ -120,13 +152,8 @@ Returnerar `{"status": "ok"}` om tjänsten lever.
 Det finns tre typer av meddelanden som skickas automatiskt:
 
 1. **Välkomst** – skickas när någon prenumererar.
-   SMS: "Tack för att du registrerat dig för UNESCO-notiser!"
-
 2. **Platsbaserad** – skickas när någon är nära ett världsarv.
-   SMS: "Du är nära Drottningholm! Läs mer: ..."
-
 3. **Avregistrering** – skickas när någon avprenumererar.
-   SMS: "Du har avregistrerats från notiser för: Drottningholm."
 
 Alla tre skickas både som SMS och e-post om användaren har registrerat båda.
 
@@ -139,8 +166,25 @@ Det går att ändra tidsgränsen via `NOTIFICATION_COOLDOWN` i `.env` (i sekunde
 
 ## Lagring
 
-Prenumeranter och skickade notifieringar sparas i en SQLite-databas (`notification.db`).
-Filen skapas automatiskt. Data finns kvar även om servern startas om.
+Prenumeranter och skickade notifieringar sparas i en PostgreSQL-databas.
+Tabellerna (`subscribers`, `subscriber_sites`, `sent_log`) skapas automatiskt vid uppstart.
+Data finns kvar även om servern startas om.
+
+Anslutningen konfigureras via miljövariabler i `.env`:
+
+```
+NOTIFICATION_PG_HOST=localhost
+NOTIFICATION_PG_PORT=5432
+NOTIFICATION_PG_DATABASE=notification
+NOTIFICATION_PG_USER=postgres
+NOTIFICATION_PG_PASSWORD=changeme
+```
+
+Skapa databasen innan första start:
+
+```bash
+createdb notification
+```
 
 
 ## Hur en annan grupp använder tjänsten
@@ -158,3 +202,17 @@ requests.post("https://vår-server.com/notification/send-notification", json={
 ```
 
 Ingen annan kodändring behövs. Vill man byta tillbaka ändrar man bara URL:en igen.
+
+
+## Nuvarande implementation (intern detalj)
+
+Dessa val är **inte** en del av det publika kontraktet och kan bytas utan att
+andra grupper märker det:
+
+- **SMS-leverantör:** HelloSMS (klass `SMSProvider` i `providers.py`)
+- **E-postleverantör:** SMTP2GO (klass `EmailProvider` i `providers.py`)
+- **Databas:** PostgreSQL via `psycopg2`
+
+För att byta leverantör räcker det att skriva om `SMSProvider.send()` eller
+`EmailProvider.send()` – inga ändringar behövs i `service.py`, `routes.py`
+eller hos konsumenter av API:et.
