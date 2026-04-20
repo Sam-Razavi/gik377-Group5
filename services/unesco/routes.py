@@ -1,26 +1,34 @@
 # Ansvarig: Sonia Tolouifar
 # Modul: UNESCO-data & Karttjänst
 
-from flask import Blueprint, jsonify, request
-from services.unesco.service import get_sites_near
+from typing import Optional
+from fastapi import APIRouter
+from services.unesco.service import get_sites_near, BORLANGE_LAT, BORLANGE_LON
 
-unesco_bp = Blueprint("unesco", __name__)
+router = APIRouter(prefix="/unesco", tags=["unesco"])
 
 
-@unesco_bp.route("/api/sites")
-def sites():
-    """Returnerar världsarvssajter nära Borlänge som JSON.
+@router.get("/sites")
+def sites(
+    radius: int = 150,
+    category: Optional[str] = None,
+    lat: Optional[float] = None,
+    lon: Optional[float] = None,
+):
+    """Returnerar världsarvssajter nära en given position som JSON.
 
     Query-parametrar:
-      ?radius=150   - radie i km (standard 150)
-      ?category=Cultural - filtrera på Cultural, Natural eller Mixed
+      ?radius=150         - radie i km (standard 150)
+      ?category=Cultural  - filtrera på Cultural, Natural eller Mixed
+      ?lat=60.4858        - latitud (standard: Borlänge)
+      ?lon=15.4358        - longitud (standard: Borlänge)
     """
-    radius = request.args.get("radius", 150, type=int)
-    category = request.args.get("category", None)
+    user_lat = lat if lat is not None else BORLANGE_LAT
+    user_lon = lon if lon is not None else BORLANGE_LON
 
-    data = get_sites_near(radius_km=radius)
+    data = get_sites_near(lat=user_lat, lon=user_lon, radius_km=radius)
 
     if category:
         data = [s for s in data if s.get("category", "").lower() == category.lower()]
 
-    return jsonify(data)
+    return data
