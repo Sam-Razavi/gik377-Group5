@@ -2,17 +2,18 @@
 
 import sys
 import os
-import tempfile
 
 # Måste sättas INNAN någon modul importeras
 os.environ["HELLOSMS_USERNAME"] = os.environ.get("HELLOSMS_USERNAME", "test_user")
 os.environ["HELLOSMS_PASSWORD"] = os.environ.get("HELLOSMS_PASSWORD", "test_pass")
 os.environ["SMTP2GO_API_KEY"] = os.environ.get("SMTP2GO_API_KEY", "test_key")
 
-# Använd temporär databas för tester
-_test_db = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
-os.environ["NOTIFICATION_DB_PATH"] = _test_db.name
-_test_db.close()
+# PostgreSQL-inställningar för tester (använd en separat testdatabas)
+os.environ.setdefault("NOTIFICATION_PG_HOST", "localhost")
+os.environ.setdefault("NOTIFICATION_PG_PORT", "5432")
+os.environ.setdefault("NOTIFICATION_PG_DATABASE", "notification_test")
+os.environ.setdefault("NOTIFICATION_PG_USER", "postgres")
+os.environ.setdefault("NOTIFICATION_PG_PASSWORD", "postgres")
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
@@ -34,9 +35,10 @@ class BaseTestCase(unittest.TestCase):
 
     def setUp(self):
         conn = db._connect()
-        conn.execute("DELETE FROM sent_log")
-        conn.execute("DELETE FROM subscriber_sites")
-        conn.execute("DELETE FROM subscribers")
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM sent_log")
+            cur.execute("DELETE FROM subscriber_sites")
+            cur.execute("DELETE FROM subscribers")
         conn.commit()
         conn.close()
 
@@ -45,14 +47,14 @@ class TestSendNotification(BaseTestCase):
 
     @patch("services.notification.service.sms_provider")
     def test_send_sms_success(self, mock_sms):
-        mock_sms.send.return_value = {"success": True, "provider": "hellosms", "detail": {}}
+        mock_sms.send.return_value = {"success": True, "channel": "sms", "detail": {}}
         result = send_notification("sms", "+46701234567", "Hej!")
         self.assertTrue(result["success"])
         mock_sms.send.assert_called_once_with(to="+46701234567", message="Hej!")
 
     @patch("services.notification.service.email_provider")
     def test_send_email_success(self, mock_email):
-        mock_email.send.return_value = {"success": True, "provider": "smtp2go", "detail": {}}
+        mock_email.send.return_value = {"success": True, "channel": "email", "detail": {}}
         result = send_notification("email", "test@example.com", "Hej!", subject="Test")
         self.assertTrue(result["success"])
         mock_email.send.assert_called_once()
@@ -74,7 +76,7 @@ class TestSendNotification(BaseTestCase):
 
     @patch("services.notification.service.sms_provider")
     def test_cooldown_blocks_same_channel(self, mock_sms):
-        mock_sms.send.return_value = {"success": True, "provider": "hellosms", "detail": {}}
+        mock_sms.send.return_value = {"success": True, "channel": "sms", "detail": {}}
         send_notification("sms", "+46701234567", "Hej!", user_id="u1", site_id="s1")
         result = send_notification("sms", "+46701234567", "Hej!", user_id="u1", site_id="s1")
         self.assertFalse(result["success"])
@@ -84,8 +86,8 @@ class TestSendNotification(BaseTestCase):
     @patch("services.notification.service.sms_provider")
     def test_cooldown_does_not_block_different_channel(self, mock_sms, mock_email):
         """SMS-cooldown ska inte blockera e-post för samma plats."""
-        mock_sms.send.return_value = {"success": True, "provider": "hellosms", "detail": {}}
-        mock_email.send.return_value = {"success": True, "provider": "smtp2go", "detail": {}}
+        mock_sms.send.return_value = {"success": True, "channel": "sms", "detail": {}}
+        mock_email.send.return_value = {"success": True, "channel": "email", "detail": {}}
         send_notification("sms", "+46701234567", "Hej!", user_id="u1", site_id="s1")
         result = send_notification("email", "test@example.com", "Hej!", user_id="u1", site_id="s1")
         self.assertTrue(result["success"])
@@ -95,7 +97,7 @@ class TestSubscription(BaseTestCase):
 
     @patch("services.notification.service.sms_provider")
     def test_subscribe_new_user(self, mock_sms):
-        mock_sms.send.return_value = {"success": True, "provider": "hellosms", "detail": {}}
+        mock_sms.send.return_value = {"success": True, "channel": "sms", "detail": {}}
         result = subscribe("u1", phone="+46701234567", sites=["s1"])
         self.assertTrue(result["success"])
         self.assertIn("u1", get_subscribers())
@@ -103,8 +105,8 @@ class TestSubscription(BaseTestCase):
     @patch("services.notification.service.email_provider")
     @patch("services.notification.service.sms_provider")
     def test_subscribe_updates_existing(self, mock_sms, mock_email):
-        mock_sms.send.return_value = {"success": True, "provider": "hellosms", "detail": {}}
-        mock_email.send.return_value = {"success": True, "provider": "smtp2go", "detail": {}}
+        mock_sms.send.return_value = {"success": True, "channel": "sms", "detail": {}}
+        mock_email.send.return_value = {"success": True, "channel": "email", "detail": {}}
         subscribe("u1", phone="+46701234567", sites=["s1"])
         subscribe("u1", email="a@b.com", sites=["s2"])
         sub = get_subscribers()["u1"]
@@ -127,14 +129,14 @@ class TestSubscription(BaseTestCase):
 
     @patch("services.notification.service.sms_provider")
     def test_unsubscribe_all(self, mock_sms):
-        mock_sms.send.return_value = {"success": True, "provider": "hellosms", "detail": {}}
+        mock_sms.send.return_value = {"success": True, "channel": "sms", "detail": {}}
         subscribe("u1", phone="+46701234567", sites=["s1"])
         unsubscribe("u1")
         self.assertNotIn("u1", get_subscribers())
 
     @patch("services.notification.service.sms_provider")
     def test_unsubscribe_specific_sites(self, mock_sms):
-        mock_sms.send.return_value = {"success": True, "provider": "hellosms", "detail": {}}
+        mock_sms.send.return_value = {"success": True, "channel": "sms", "detail": {}}
         subscribe("u1", phone="+46701234567", sites=["s1", "s2"])
         unsubscribe("u1", sites=["s1"])
         self.assertEqual(get_subscribers()["u1"]["sites"], ["s2"])
@@ -146,7 +148,7 @@ class TestSubscription(BaseTestCase):
     @patch("services.notification.service.sms_provider")
     def test_welcome_sms_sent_on_new_subscribe(self, mock_sms):
         """Välkomst-SMS ska skickas vid ny registrering."""
-        mock_sms.send.return_value = {"success": True, "provider": "hellosms", "detail": {}}
+        mock_sms.send.return_value = {"success": True, "channel": "sms", "detail": {}}
         subscribe("u1", phone="+46701234567", sites=["s1"])
         # Första anropet är välkomstmeddelandet
         welcome_call = mock_sms.send.call_args_list[0]
@@ -155,7 +157,7 @@ class TestSubscription(BaseTestCase):
     @patch("services.notification.service.email_provider")
     def test_welcome_email_sent_on_new_subscribe(self, mock_email):
         """Välkomstmejl ska skickas vid ny registrering."""
-        mock_email.send.return_value = {"success": True, "provider": "smtp2go", "detail": {}}
+        mock_email.send.return_value = {"success": True, "channel": "email", "detail": {}}
         subscribe("u1", email="a@b.com", sites=["s1"])
         welcome_call = mock_email.send.call_args_list[0]
         self.assertIn("Välkommen", welcome_call[1]["subject"])
@@ -163,7 +165,7 @@ class TestSubscription(BaseTestCase):
     @patch("services.notification.service.sms_provider")
     def test_unsubscribe_confirmation_sms_sent(self, mock_sms):
         """Bekräftelse-SMS ska skickas vid avprenumeration."""
-        mock_sms.send.return_value = {"success": True, "provider": "hellosms", "detail": {}}
+        mock_sms.send.return_value = {"success": True, "channel": "sms", "detail": {}}
         subscribe("u1", phone="+46701234567", sites=["s1"])
         mock_sms.send.reset_mock()
         unsubscribe("u1")
@@ -179,14 +181,14 @@ class TestTriggerForLocation(BaseTestCase):
 
     @patch("services.notification.service.sms_provider")
     def test_trigger_not_subscribed_to_site(self, mock_sms):
-        mock_sms.send.return_value = {"success": True, "provider": "hellosms", "detail": {}}
+        mock_sms.send.return_value = {"success": True, "channel": "sms", "detail": {}}
         subscribe("u1", phone="+46701234567", sites=["s2"])
         results = trigger_for_location("u1", "s1", "Drottningholm")
         self.assertFalse(results[0]["success"])
 
     @patch("services.notification.service.sms_provider")
     def test_trigger_sends_sms_with_correct_message(self, mock_sms):
-        mock_sms.send.return_value = {"success": True, "provider": "hellosms", "detail": {}}
+        mock_sms.send.return_value = {"success": True, "channel": "sms", "detail": {}}
         subscribe("u1", phone="+46701234567", sites=["s1"])
         results = trigger_for_location("u1", "s1", "Drottningholm")
         self.assertEqual(len(results), 1)
@@ -199,8 +201,8 @@ class TestTriggerForLocation(BaseTestCase):
     @patch("services.notification.service.sms_provider")
     def test_trigger_sends_both_sms_and_email(self, mock_sms, mock_email):
         """Både SMS och e-post ska skickas utan att cooldown blockerar."""
-        mock_sms.send.return_value = {"success": True, "provider": "hellosms", "detail": {}}
-        mock_email.send.return_value = {"success": True, "provider": "smtp2go", "detail": {}}
+        mock_sms.send.return_value = {"success": True, "channel": "sms", "detail": {}}
+        mock_email.send.return_value = {"success": True, "channel": "email", "detail": {}}
         subscribe("u1", phone="+46701234567", email="a@b.com", sites=["s1"])
         results = trigger_for_location("u1", "s1", "Drottningholm")
         self.assertEqual(len(results), 2)
@@ -211,8 +213,8 @@ class TestTriggerForLocation(BaseTestCase):
     @patch("services.notification.service.sms_provider")
     def test_trigger_cooldown_blocks_second_trigger(self, mock_sms, mock_email):
         """Andra triggern för samma plats ska blockeras per kanal."""
-        mock_sms.send.return_value = {"success": True, "provider": "hellosms", "detail": {}}
-        mock_email.send.return_value = {"success": True, "provider": "smtp2go", "detail": {}}
+        mock_sms.send.return_value = {"success": True, "channel": "sms", "detail": {}}
+        mock_email.send.return_value = {"success": True, "channel": "email", "detail": {}}
         subscribe("u1", phone="+46701234567", email="a@b.com", sites=["s1"])
 
         results1 = trigger_for_location("u1", "s1", "Drottningholm")
@@ -234,7 +236,7 @@ class TestTriggerForLocation(BaseTestCase):
 
     @patch("services.notification.service.sms_provider")
     def test_trigger_includes_link(self, mock_sms):
-        mock_sms.send.return_value = {"success": True, "provider": "hellosms", "detail": {}}
+        mock_sms.send.return_value = {"success": True, "channel": "sms", "detail": {}}
         subscribe("u1", phone="+46701234567", sites=["s1"])
         trigger_for_location("u1", "s1", "Drottningholm", link="https://example.com")
         trigger_call = mock_sms.send.call_args_list[-1]
@@ -273,7 +275,7 @@ class TestRoutes(BaseTestCase):
 
     @patch("services.notification.service.sms_provider")
     def test_send_sms_via_route(self, mock_sms):
-        mock_sms.send.return_value = {"success": True, "provider": "hellosms", "detail": {}}
+        mock_sms.send.return_value = {"success": True, "channel": "sms", "detail": {}}
         resp = self.client.post("/notification/send-notification",
                                 json={"type": "sms", "to": "+46701234567", "message": "Hej!"})
         self.assertEqual(resp.status_code, 200)
@@ -289,7 +291,7 @@ class TestRoutes(BaseTestCase):
 
     @patch("services.notification.service.sms_provider")
     def test_subscribe_via_route(self, mock_sms):
-        mock_sms.send.return_value = {"success": True, "provider": "hellosms", "detail": {}}
+        mock_sms.send.return_value = {"success": True, "channel": "sms", "detail": {}}
         resp = self.client.post("/notification/subscribe",
                                 json={"user_id": "u1", "phone": "+46701234567", "sites": ["s1"]})
         self.assertEqual(resp.status_code, 200)
@@ -322,7 +324,7 @@ class TestRoutes(BaseTestCase):
 
     @patch("services.notification.service.sms_provider")
     def test_trigger_success_returns_200(self, mock_sms):
-        mock_sms.send.return_value = {"success": True, "provider": "hellosms", "detail": {}}
+        mock_sms.send.return_value = {"success": True, "channel": "sms", "detail": {}}
         self.client.post("/notification/subscribe",
                          json={"user_id": "u1", "phone": "+46701234567", "sites": ["s1"]})
         resp = self.client.get("/notification/trigger-notification?user_id=u1&site_id=s1&site_name=Test")
