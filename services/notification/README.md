@@ -37,10 +37,10 @@ app.register_blueprint(notification_bp)
 Alla svar följer samma mönster:
 ```json
 {"success": true, "channel": "sms"}
-{"success": false, "error": "cooldown", "message": "..."}
+{"success": false, "error": "cooldown", "message": "Notifiering redan skickad för denna plats och kanal nyligen."}
 ```
 
-Fältet `channel` är alltid `"sms"` eller `"email"` – aldrig ett leverantörsnamn.
+Fältet `channel` är alltid `"sms"` eller `"email"` - aldrig ett leverantörsnamn.
 Det gör att modulen kan bytas ut utan att konsumenter behöver ändra kod.
 
 
@@ -52,7 +52,7 @@ Det gör att modulen kan bytas ut utan att konsumenter behöver ändra kod.
 POST /notification/send-notification
 ```
 
-Skicka med JSON i bodyn:
+Skicka med JSON i bodyn. Exempel SMS (minimalt):
 ```json
 {
   "type": "sms",
@@ -61,33 +61,65 @@ Skicka med JSON i bodyn:
 }
 ```
 
-- `type` – antingen `"sms"` eller `"email"` (obligatoriskt)
-- `to` – telefonnummer med +46 eller e-postadress (obligatoriskt)
-- `message` – texten som ska skickas (obligatoriskt)
-- `subject` – ämnesrad, bara för e-post (valfritt)
-- `user_id` – för att hålla koll på anti-spam (valfritt)
-- `site_id` – för att hålla koll på anti-spam (valfritt)
+Exempel e-post (alla fält ifyllda):
+```json
+{
+  "type": "email",
+  "to": "user@example.com",
+  "subject": "Du är nära Drottningholm",
+  "message": "Du är nära Drottningholm - ett av UNESCO:s världsarv.",
+  "user_id": "abc123",
+  "site_id": "drottningholm_001"
+}
+```
 
-Svar om det gick bra:
+- `type` - antingen `"sms"` eller `"email"` (obligatoriskt)
+- `to` - telefonnummer med +46 eller e-postadress (obligatoriskt)
+- `message` - texten som ska skickas (obligatoriskt)
+- `subject` - ämnesrad, bara för e-post (valfritt)
+- `user_id` - för att hålla koll på anti-spam (valfritt)
+- `site_id` - för att hålla koll på anti-spam (valfritt)
+
+Svar om det gick bra (HTTP 200):
 ```json
 {"success": true, "channel": "sms"}
 ```
 
-Svar om det gick fel:
+Svar om typen är ogiltig (HTTP 400):
 ```json
-{"success": false, "error": "cooldown", "message": "Notifiering redan skickad..."}
+{"success": false, "error": "invalid_type", "message": "Ogiltig typ. Använd 'sms' eller 'email'."}
+```
+
+Svar om telefonnumret är ogiltigt (HTTP 400):
+```json
+{"success": false, "error": "invalid_recipient", "message": "Ogiltigt telefonnummer. Förväntat format: +46701234567"}
+```
+
+Svar om e-postadressen är ogiltig (HTTP 400):
+```json
+{"success": false, "error": "invalid_recipient", "message": "Ogiltig e-postadress."}
+```
+
+Svar om cooldown är aktiv (HTTP 429):
+```json
+{"success": false, "error": "cooldown", "message": "Notifiering redan skickad för denna plats och kanal nyligen."}
+```
+
+Svar om providern inte svarar (HTTP 500):
+```json
+{"success": false, "channel": "sms", "error": "Provider svarade inte efter flera försök."}
 ```
 
 Statuskoder:
-- 200 – Skickat
-- 400 – Något fält saknas eller är ogiltigt
-- 429 – Cooldown, redan skickat nyligen
-- 500 – Providern svarade inte
+- 200 - Skickat
+- 400 - Något fält saknas eller är ogiltigt
+- 429 - Cooldown, redan skickat nyligen
+- 500 - Providern svarade inte
 
 Felkoder (fältet `error`):
-- `invalid_type` – `type` är varken `"sms"` eller `"email"`
-- `invalid_recipient` – `to` har fel format
-- `cooldown` – redan notifierad inom cooldown-perioden
+- `invalid_type` - `type` är varken `"sms"` eller `"email"`
+- `invalid_recipient` - `to` har fel format
+- `cooldown` - redan notifierad inom cooldown-perioden
 
 
 ### Trigga notifiering baserat på position
@@ -96,10 +128,10 @@ Felkoder (fältet `error`):
 GET /notification/trigger-notification?user_id=abc123&site_id=drottningholm_001&site_name=Drottningholm
 ```
 
-- `user_id` – vem som ska få notifieringen (obligatoriskt)
-- `site_id` – vilket världsarv (obligatoriskt)
-- `site_name` – namn på världsarvet (valfritt)
-- `link` – länk till mer info (valfritt)
+- `user_id` - vem som ska få notifieringen (obligatoriskt)
+- `site_id` - vilket världsarv (obligatoriskt)
+- `site_name` - namn på världsarvet (valfritt)
+- `link` - länk till mer info (valfritt)
 
 Användaren måste vara prenumerant och ha den platsen i sin lista. Annars får man 404.
 
