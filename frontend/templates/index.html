@@ -4,82 +4,76 @@
       <meta charset="UTF-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       <title>Världsarvsportalen | Nordic Digital Solutions</title>
-      <link rel="stylesheet" href="style.css" />
+      <link rel="stylesheet" href="../static/css/style.css" />
    </head>
    <body>
-      <nav class="main-nav">
-         <div class="nav-container">
-            <span class="brand"
-               >UNESCO <span class="brand-sub">World Heritage</span></span
-            >
-            <div class="nav-tools">
-               <select id="lang-picker" class="input-minimal">
-                  <option>Svenska</option>
-                  <option>English</option>
+      <nav class="top-nav">
+         <div class="container nav-content">
+            <span class="logo">UNESCO <strong>World Heritage</strong></span>
+            <div class="nav-actions">
+               <select id="lang-picker" onchange="changeLanguage(this.value)">
+                  <option value="sv">Svenska</option>
+                  <option value="en">English</option>
                </select>
-               <button class="btn-secondary" onclick="loginWithBankID()">
-                  Logga in med BankID
+               <button class="btn-bankid" onclick="loginWithBankID()">
+                  BankID Inloggning
                </button>
             </div>
          </div>
       </nav>
 
-      <main class="dashboard">
-         <section class="module card map-module">
-            <div class="module-header">
-               <span class="badge">Karta</span>
-               <h2>Världsarv i närheten</h2>
-            </div>
-            <div id="map-placeholder" class="visual-area">
-               <p>Här integreras Sonias karttjänst via API</p>
+      <header class="hero">
+         <div class="container">
+            <span class="kicker">Nordic Digital Solutions</span>
+            <h1>Världsarv i din närhet</h1>
+            <p class="subtitle">
+               Utforska historiska platser genom interaktiva annonser och lokala
+               notiser.
+            </p>
+         </div>
+      </header>
+
+      <main class="container dashboard">
+         <section class="card map-area">
+            <div class="card-label">Karta</div>
+            <div id="map-placeholder">
+               <p>Karttjänst laddas...</p>
             </div>
          </section>
 
-         <div class="side-content">
-            <section class="module card info-module">
-               <div class="module-header">
-                  <span class="badge">Information</span>
-                  <h2>Aktuella platser</h2>
+         <section class="card list-area">
+            <div class="card-label">Utforska</div>
+            <h2>Lokala platser</h2>
+            <div id="sites-display" class="site-grid"></div>
+         </section>
+
+         <section class="card service-area">
+            <div class="card-label">Tjänster</div>
+            <h3>SMS-notiser</h3>
+            <p>Få ett SMS när du är nära ett världsarv.</p>
+            <form id="sms-form">
+               <input
+                  type="tel"
+                  id="phone"
+                  placeholder="Mobilnummer"
+                  required />
+               <div class="payment-check">
+                  <input type="checkbox" id="pay-confirm" required />
+                  <label for="pay-confirm"
+                     >Aktivera prenumeration (19 kr/mån)</label
+                  >
                </div>
-               <div id="sites-display" class="scroll-area"></div>
-            </section>
-
-            <section class="module card service-module">
-               <div class="module-header">
-                  <span class="badge">Tjänster</span>
-                  <h2>SMS-notiser</h2>
-               </div>
-               <form id="sms-form" class="stack">
-                  <p class="text-small">
-                     Håll dig uppdaterad om lokala världsarv direkt i telefonen.
-                  </p>
-                  <input
-                     type="tel"
-                     id="phone"
-                     placeholder="Mobilnummer"
-                     class="input-main" />
-
-                  <div class="payment-box">
-                     <label class="checkbox-container">
-                        <input type="checkbox" id="pay-confirm" />
-                        <span class="checkmark"></span>
-                        Prenumerera (19 kr/mån)
-                     </label>
-                  </div>
-
-                  <button type="submit" class="btn-primary">
-                     Aktivera tjänst
-                  </button>
-               </form>
-            </section>
-         </div>
+               <button type="submit" class="btn-submit">Starta tjänsten</button>
+            </form>
+         </section>
       </main>
 
-      <footer class="main-footer">
-         <p>Projekt GIK377 - Nordic Digital Solutions</p>
+      <footer class="footer">
+         <div class="container">
+            <p>Projekt GIK377 - Dagspressutgivarna AB</p>
+         </div>
       </footer>
 
-      <script src="mock-data.js"></script>
-      <script src="app.js"></script>
+      <script src="../static/js/app.js"></script>
    </body>
 </html>
