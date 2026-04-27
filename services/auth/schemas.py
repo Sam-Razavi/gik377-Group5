@@ -26,6 +26,7 @@ class UserResponse(BaseModel):
     home_address: str | None = None
     home_lat: float | None = None
     home_lon: float | None = None
+    two_factor_enabled: bool = False
 
     model_config = {
         "from_attributes": True
@@ -35,6 +36,32 @@ class UserResponse(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
+
+
+class LoginResponse(BaseModel):
+    access_token: str | None = None
+    token_type: str | None = None
+    requires_2fa: bool = False
+    temp_token: str | None = None
+
+
+class TwoFactorSetupResponse(BaseModel):
+    secret: str
+    provisioning_uri: str
+    message: str
+
+
+class TwoFactorVerifyRequest(BaseModel):
+    code: str
+
+
+class TwoFactorLoginRequest(BaseModel):
+    temp_token: str
+    code: str
+
+
+class TwoFactorStatusResponse(BaseModel):
+    two_factor_enabled: bool
 
 
 class BankIDInitiateResponse(BaseModel):

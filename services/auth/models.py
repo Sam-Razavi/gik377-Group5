@@ -17,6 +17,9 @@ class User(Base):
     auth_provider = Column(String, nullable=False, default="local")
     bankid_personal_number = Column(String, unique=True, nullable=True)
 
+    two_factor_enabled = Column(Boolean, default=False)
+    two_factor_secret = Column(String, nullable=True)
+
     home_address = Column(String, nullable=True)
     home_lat = Column(Float, nullable=True)
     home_lon = Column(Float, nullable=True)
