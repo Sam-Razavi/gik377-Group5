@@ -12,4 +12,5 @@ python-jose[cryptography]
 python-multipart
 httpx
 email-validator
+anthropic
 pyotp

@@ -3,9 +3,17 @@
 
 from typing import Optional
 from fastapi import APIRouter
-from services.unesco.service import get_sites_near, BORLANGE_LAT, BORLANGE_LON
+from pydantic import BaseModel
+from services.unesco.service import get_sites_near, chat_about_unesco, BORLANGE_LAT, BORLANGE_LON
 
 router = APIRouter(prefix="/unesco", tags=["unesco"])
+
+
+class ChatRequest(BaseModel):
+    message: str
+    lat: Optional[float] = None
+    lon: Optional[float] = None
+    radius: int = 150
 
 
 @router.get("/sites")
@@ -32,3 +40,19 @@ def sites(
         data = [s for s in data if s.get("category", "").lower() == category.lower()]
 
     return data
+
+
+@router.post("/chat")
+def chat(req: ChatRequest):
+    """AI-chatt om världsarv nära användarens position.
+
+    Body:
+      { "message": "Vilka världsarv finns nära mig?", "lat": 60.4858, "lon": 15.4358, "radius": 150 }
+    """
+    user_lat = req.lat if req.lat is not None else BORLANGE_LAT
+    user_lon = req.lon if req.lon is not None else BORLANGE_LON
+
+    sites = get_sites_near(lat=user_lat, lon=user_lon, radius_km=req.radius)
+    answer = chat_about_unesco(req.message, sites)
+
+    return {"answer": answer, "sites_used": len(sites)}
