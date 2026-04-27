@@ -41,9 +41,14 @@ def init_db():
             CREATE TABLE IF NOT EXISTS subscriber_sites (
                 user_id TEXT NOT NULL,
                 site_id TEXT NOT NULL,
+                visited BOOLEAN NOT NULL DEFAULT FALSE,
                 PRIMARY KEY (user_id, site_id),
                 FOREIGN KEY (user_id) REFERENCES subscribers(user_id) ON DELETE CASCADE
             );
+        """)
+        cur.execute("""
+            ALTER TABLE subscriber_sites
+            ADD COLUMN IF NOT EXISTS visited BOOLEAN NOT NULL DEFAULT FALSE;
         """)
         cur.execute("""
             CREATE TABLE IF NOT EXISTS sent_log (
@@ -88,6 +93,35 @@ def mark_sent(user_id, site_id, channel):
         )
     conn.commit()
     conn.close()
+
+
+# --- Visited (besökta världsarv) ---
+
+def is_visited(user_id, site_id):
+    """Returnerar True om användaren har bockat av detta världsarv."""
+    conn = _connect()
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT visited FROM subscriber_sites WHERE user_id=%s AND site_id=%s",
+            (user_id, site_id),
+        )
+        row = cur.fetchone()
+    conn.close()
+    return bool(row[0]) if row else False
+
+
+def mark_visited(user_id, site_id):
+    """Markerar ett världsarv som besökt. Returnerar True om raden uppdaterades."""
+    conn = _connect()
+    with conn.cursor() as cur:
+        cur.execute(
+            "UPDATE subscriber_sites SET visited=TRUE WHERE user_id=%s AND site_id=%s",
+            (user_id, site_id),
+        )
+        updated = cur.rowcount
+    conn.commit()
+    conn.close()
+    return updated > 0
 
 
 # --- Prenumeranter ---
