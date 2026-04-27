@@ -29,12 +29,22 @@ SMTP2GO_SENDER = os.getenv("SMTP2GO_SENDER", "noreply@nordicdigitalsolutions.se"
 # Debug-token för skyddade endpoints (t.ex. /subscribers)
 ADMIN_TOKEN = os.getenv("NOTIFICATION_ADMIN_TOKEN", "")
 
-# Anti-spam: max 1 SMS per världsarv per "tillfälle".
-# Vi definierar "tillfälle" som en tidsperiod i sekunder (default 3600 = 1 timme).
-# Motivering: när en användare befinner sig nära ett världsarv räknas det som
-# ett tillfälle så länge de är kvar inom tidsfönstret. Först efter att cooldown
-# löpt ut kan ett nytt SMS skickas för samma plats.
-COOLDOWN_SECONDS = int(os.getenv("NOTIFICATION_COOLDOWN", "3600"))
+# Bas-URL till sidan som visar världsarvsinformation.
+# Backend bygger länken som "{SITE_PAGE_BASE_URL}?id={site_id}".
+SITE_PAGE_BASE_URL = os.getenv(
+    "SITE_PAGE_BASE_URL",
+    "https://nordicdigitalsolutions.se/site.html",
+)
+
+# Anti-spam: cooldown per kanal och världsarv (anges i TIMMAR).
+# SMS kostar mer än e-post, därför längre fönster för SMS.
+# Default: 720 timmar (30 dagar) för SMS, 168 timmar (7 dagar) för e-post.
+COOLDOWN_SMS_HOURS = int(os.getenv("NOTIFICATION_COOLDOWN_SMS_HOURS", "720"))
+COOLDOWN_EMAIL_HOURS = int(os.getenv("NOTIFICATION_COOLDOWN_EMAIL_HOURS", "168"))
+
+# Räknas om till sekunder internt (timestamps i DB är i sekunder).
+COOLDOWN_SMS_SECONDS = COOLDOWN_SMS_HOURS * 3600
+COOLDOWN_EMAIL_SECONDS = COOLDOWN_EMAIL_HOURS * 3600
 
 # PostgreSQL-anslutning
 PG_HOST = os.getenv("NOTIFICATION_PG_HOST", "localhost")

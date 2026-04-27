@@ -1,3 +1,5 @@
+import pyotp
+
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
@@ -523,3 +525,174 @@ def test_bankid_initiate_returns_order_data(monkeypatch):
     assert "autoStartToken" in data
     assert "qrStartToken" in data
     assert "qrStartSecret" in data
+
+def test_setup_two_factor_returns_secret_and_uri():
+    unique_email = f"twofa_setup_{uuid4().hex}@example.com"
+    password = "test1234"
+
+    register_response = client.post(
+        "/auth/register",
+        json={
+            "email": unique_email,
+            "password": password,
+            "full_name": "Two FA Setup User",
+        },
+    )
+
+    assert register_response.status_code == 200
+
+    login_response = client.post(
+        "/auth/login",
+        json={
+            "email": unique_email,
+            "password": password,
+        },
+    )
+
+    assert login_response.status_code == 200
+    access_token = login_response.json()["access_token"]
+
+    setup_response = client.post(
+        "/auth/2fa/setup",
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+
+    assert setup_response.status_code == 200
+
+    data = setup_response.json()
+    assert "secret" in data
+    assert "provisioning_uri" in data
+    assert data["provisioning_uri"].startswith("otpauth://")
+
+
+def test_enable_two_factor_and_login_requires_2fa():
+    unique_email = f"twofa_enable_{uuid4().hex}@example.com"
+    password = "test1234"
+
+    register_response = client.post(
+        "/auth/register",
+        json={
+            "email": unique_email,
+            "password": password,
+            "full_name": "Two FA Enable User",
+        },
+    )
+
+    assert register_response.status_code == 200
+
+    login_response = client.post(
+        "/auth/login",
+        json={
+            "email": unique_email,
+            "password": password,
+        },
+    )
+
+    assert login_response.status_code == 200
+    access_token = login_response.json()["access_token"]
+
+    setup_response = client.post(
+        "/auth/2fa/setup",
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+
+    assert setup_response.status_code == 200
+
+    secret = setup_response.json()["secret"]
+    code = pyotp.TOTP(secret).now()
+
+    enable_response = client.post(
+        "/auth/2fa/enable",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json={"code": code},
+    )
+
+    assert enable_response.status_code == 200
+    assert enable_response.json()["two_factor_enabled"] is True
+
+    second_login_response = client.post(
+        "/auth/login",
+        json={
+            "email": unique_email,
+            "password": password,
+        },
+    )
+
+    assert second_login_response.status_code == 200
+
+    data = second_login_response.json()
+    assert data["requires_2fa"] is True
+    assert "temp_token" in data
+    assert data["access_token"] is None
+
+
+def test_complete_two_factor_login_returns_access_token():
+    unique_email = f"twofa_login_{uuid4().hex}@example.com"
+    password = "test1234"
+
+    register_response = client.post(
+        "/auth/register",
+        json={
+            "email": unique_email,
+            "password": password,
+            "full_name": "Two FA Login User",
+        },
+    )
+
+    assert register_response.status_code == 200
+
+    login_response = client.post(
+        "/auth/login",
+        json={
+            "email": unique_email,
+            "password": password,
+        },
+    )
+
+    assert login_response.status_code == 200
+    access_token = login_response.json()["access_token"]
+
+    setup_response = client.post(
+        "/auth/2fa/setup",
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+
+    assert setup_response.status_code == 200
+
+    secret = setup_response.json()["secret"]
+    code = pyotp.TOTP(secret).now()
+
+    enable_response = client.post(
+        "/auth/2fa/enable",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json={"code": code},
+    )
+
+    assert enable_response.status_code == 200
+
+    login_with_2fa_response = client.post(
+        "/auth/login",
+        json={
+            "email": unique_email,
+            "password": password,
+        },
+    )
+
+    assert login_with_2fa_response.status_code == 200
+
+    temp_token = login_with_2fa_response.json()["temp_token"]
+    new_code = pyotp.TOTP(secret).now()
+
+    complete_response = client.post(
+        "/auth/login/2fa",
+        json={
+            "temp_token": temp_token,
+            "code": new_code,
+        },
+    )
+
+    assert complete_response.status_code == 200
+
+    data = complete_response.json()
+    assert "access_token" in data
+    assert data["token_type"] == "bearer"

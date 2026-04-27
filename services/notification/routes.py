@@ -17,18 +17,19 @@ from services.notification.service import (
     unsubscribe,
     get_subscribers,
     trigger_for_location,
+    mark_visited,
     VALID_TYPES,
 )
 
 logger = logging.getLogger("notification")
 
-router = APIRouter(prefix="/notification", tags=["notification"])
+router = APIRouter(prefix="/api/notification", tags=["notification"])
 
 
 # ---------- Pydantic-modeller (gemensamt API-kontrakt) ----------
 
 class SendNotificationRequest(BaseModel):
-    type: Literal["sms", "email"] = Field(..., description="sms eller email")
+    channel: Literal["sms", "email"] = Field(..., description="sms eller email")
     to: str = Field(..., description="Telefonnummer (+46...) eller e-postadress")
     message: str = Field(..., description="Meddelandetexten")
     subject: Optional[str] = Field(None, description="Ämnesrad (endast e-post)")
@@ -48,15 +49,20 @@ class UnsubscribeRequest(BaseModel):
     sites: Optional[List[str]] = None
 
 
+class MarkVisitedRequest(BaseModel):
+    user_id: str
+    site_id: str
+
+
 # ---------- Gemensamt API ----------
 
-@router.post("/send-notification")
+@router.post("/send")
 def send(body: SendNotificationRequest):
     """
-    POST /notification/send-notification
+    POST /api/notification/send
     Body:
     {
-        "type": "sms" | "email",
+        "channel": "sms" | "email",
         "to": "+4670..." | "user@example.com",
         "message": "...",
         "subject": "...",          (valfritt, för e-post)
@@ -64,14 +70,14 @@ def send(body: SendNotificationRequest):
         "site_id": "..."           (valfritt, för anti-spam)
     }
     """
-    if body.type not in VALID_TYPES:
+    if body.channel not in VALID_TYPES:
         return JSONResponse(
             status_code=400,
-            content={"success": False, "error": "Ogiltig typ. Använd 'sms' eller 'email'."},
+            content={"success": False, "error": "Ogiltig kanal. Använd 'sms' eller 'email'."},
         )
 
     result = send_notification(
-        notification_type=body.type,
+        notification_type=body.channel,
         to=body.to,
         message=body.message,
         subject=body.subject,
@@ -83,7 +89,7 @@ def send(body: SendNotificationRequest):
         status = 200
     elif result.get("error") == "cooldown":
         status = 429
-    elif result.get("error") in ("invalid_type", "invalid_recipient"):
+    elif result.get("error") in ("invalid_channel", "invalid_recipient"):
         status = 400
     else:
         status = 500
@@ -93,7 +99,7 @@ def send(body: SendNotificationRequest):
 
 # ---------- Trigger via URL ----------
 
-@router.get("/trigger-notification")
+@router.get("/trigger")
 def trigger(
     user_id: str = Query(..., description="Vem som ska få notifieringen"),
     site_id: str = Query(..., description="Vilket världsarv"),
@@ -101,7 +107,7 @@ def trigger(
     link: Optional[str] = Query(None, description="Länk till mer info"),
 ):
     """
-    GET /notification/trigger-notification?user_id=...&site_id=...&site_name=...&link=...
+    GET /api/notification/trigger?user_id=...&site_id=...&site_name=...&link=...
     """
     results = trigger_for_location(user_id, site_id, site_name, link)
 
@@ -150,6 +156,22 @@ def unsubscribe_route(body: UnsubscribeRequest):
     Body: { "user_id": "abc123", "sites": ["site_1"] }
     """
     result = unsubscribe(body.user_id, body.sites)
+    status = 200 if result.get("success") else 404
+    return JSONResponse(status_code=status, content=result)
+
+
+# ---------- Markera världsarv som besökt ----------
+
+@router.post("/mark-visited")
+def mark_visited_route(body: MarkVisitedRequest):
+    """
+    POST /api/notification/mark-visited
+    Body: { "user_id": "abc123", "site_id": "drottningholm_001" }
+
+    Markerar världsarvet som besökt. Inga fler notiser skickas
+    för denna kombination av user_id + site_id.
+    """
+    result = mark_visited(body.user_id, body.site_id)
     status = 200 if result.get("success") else 404
     return JSONResponse(status_code=status, content=result)
 
