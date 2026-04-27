@@ -1,3 +1,16 @@
-from services.notification.routes import notification_bp
+import logging
 
-__all__ = ["notification_bp"]
+from services.notification.routes import router as notification_router
+
+
+_logger = logging.getLogger("notification")
+if not _logger.handlers:
+    _handler = logging.StreamHandler()
+    _handler.setFormatter(
+        logging.Formatter("[%(asctime)s] %(levelname)s %(name)s: %(message)s")
+    )
+    _logger.addHandler(_handler)
+    _logger.setLevel(logging.INFO)
+    _logger.propagate = False
+
+__all__ = ["notification_router"]
