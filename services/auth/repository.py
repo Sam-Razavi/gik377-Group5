@@ -27,6 +27,9 @@ def create_user(db: Session, user_data: UserCreate) -> User:
         hashed_password=hash_password(user_data.password),
         full_name=user_data.full_name,
         auth_provider="local",
+        home_address=user_data.home_address,
+        home_lat=user_data.home_lat,
+        home_lon=user_data.home_lon,
     )
 
     db.add(new_user)
