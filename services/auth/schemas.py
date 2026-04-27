@@ -1,11 +1,15 @@
-from pydantic import BaseModel, EmailStr
 from datetime import datetime
+
+from pydantic import BaseModel, EmailStr
 
 
 class UserCreate(BaseModel):
     email: EmailStr
     password: str
     full_name: str | None = None
+    home_address: str | None = None
+    home_lat: float | None = None
+    home_lon: float | None = None
 
 
 class UserLogin(BaseModel):
@@ -19,6 +23,9 @@ class UserResponse(BaseModel):
     full_name: str | None = None
     is_active: bool
     created_at: datetime
+    home_address: str | None = None
+    home_lat: float | None = None
+    home_lon: float | None = None
 
     model_config = {
         "from_attributes": True
@@ -56,6 +63,7 @@ class BankIDLoginResponse(BaseModel):
     completionData: dict | None = None
     errorCode: str | None = None
     details: str | None = None
+
 
 class BankIDInitiateRequest(BaseModel):
     personal_number: str | None = None
