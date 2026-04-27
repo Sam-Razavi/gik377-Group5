@@ -1,79 +1,153 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="sv">
-   <head>
-      <meta charset="UTF-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <title>Världsarvsportalen | Nordic Digital Solutions</title>
-      <link rel="stylesheet" href="../static/css/style.css" />
-   </head>
-   <body>
-      <nav class="top-nav">
-         <div class="container nav-content">
-            <span class="logo">UNESCO <strong>World Heritage</strong></span>
-            <div class="nav-actions">
-               <select id="lang-picker" onchange="changeLanguage(this.value)">
-                  <option value="sv">Svenska</option>
-                  <option value="en">English</option>
-               </select>
-               <button class="btn-bankid" onclick="loginWithBankID()">
-                  BankID Inloggning
-               </button>
-            </div>
-         </div>
-      </nav>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nyhetssajten - Senaste Nytt</title>
+    <link rel="stylesheet" href="../static/css/style.css" />
+  </head>
+  <body>
+    <div class="top-accent"></div>
 
-      <header class="hero">
-         <div class="container">
-            <span class="kicker">Nordic Digital Solutions</span>
-            <h1>Världsarv i din närhet</h1>
-            <p class="subtitle">
-               Utforska historiska platser genom interaktiva annonser och lokala
-               notiser.
-            </p>
-         </div>
+    <div class="news-wrapper">
+      <header class="news-header">
+        <div class="header-content">
+          <h1 class="logo">DAGS<span>TIDNINGEN</span></h1>
+          <nav class="main-nav">
+            <span>NYHETER</span>
+            <span>EKONOMI</span>
+            <span>KULTUR</span>
+            <span>SPORT</span>
+          </nav>
+        </div>
+        <div class="sub-header">
+          <p class="date">Torsdag 23 April, 2026</p>
+          <p class="weather">Stockholm: 14°C ☀️</p>
+        </div>
       </header>
 
-      <main class="container dashboard">
-         <section class="card map-area">
-            <div class="card-label">Karta</div>
-            <div id="map-placeholder">
-               <p>Karttjänst laddas...</p>
+      <main class="news-main">
+        <section class="main-article">
+          <div class="article-meta">
+            <span class="category-tag">EKONOMI</span>
+            <span class="read-time">3 min läsning</span>
+          </div>
+
+          <h1 class="article-title">
+            Nytt industriavtal klart – blir vägledande för lönerna
+          </h1>
+
+          <p class="lead-text">
+            Det nya industriavtalet är nu på plats efter intensiva förhandlingar
+            under natten. Överenskommelsen förväntas sätta ribban för hela den
+            svenska arbetsmarknaden under 2026 och 2027.
+          </p>
+
+          <p>
+            Parterna enades vid 03-tiden om ett avtal som innebär stabilitet för
+            både arbetsgivare och anställda. "Vi har landat i en ansvarsfull
+            nivå", säger en företrädare för Dagspressutgivarna AB.
+          </p>
+
+          <div class="ad-container">
+            <p class="ad-hint">ANNONS FRÅN UNESCO</p>
+            <div class="unesco-banner" id="openAdBtn">
+              <div class="unesco-content">
+                <div class="unesco-logo-wrapper">
+                  <img
+                    src="https://upload.wikimedia.org/wikipedia/commons/b/b1/UNESCO_logo.svg"
+                    alt="UNESCO Logo"
+                    class="unesco-logo"
+                  />
+                </div>
+                <div class="unesco-text">
+                  <span class="unesco-tag">WORLD HERITAGE</span>
+                  <h3>Upptäck historien nära dig</h3>
+                  <p>Utforska världsarv i realtid med vår interaktiva karta.</p>
+                </div>
+                <div class="unesco-arrow">→</div>
+              </div>
             </div>
-         </section>
+          </div>
 
-         <section class="card list-area">
-            <div class="card-label">Utforska</div>
-            <h2>Lokala platser</h2>
-            <div id="sites-display" class="site-grid"></div>
-         </section>
+          <p>
+            Analytiker menar att avtalet är ett styrkebesked. Detaljerna i
+            paketet innehåller även satsningar på kompetensutveckling och
+            arbetsmiljö, vilket har varit en knäckfråga under processen.
+          </p>
+        </section>
 
-         <section class="card service-area">
-            <div class="card-label">Tjänster</div>
-            <h3>SMS-notiser</h3>
-            <p>Få ett SMS när du är nära ett världsarv.</p>
-            <form id="sms-form">
-               <input
-                  type="tel"
-                  id="phone"
-                  placeholder="Mobilnummer"
-                  required />
-               <div class="payment-check">
-                  <input type="checkbox" id="pay-confirm" required />
-                  <label for="pay-confirm"
-                     >Aktivera prenumeration (19 kr/mån)</label
-                  >
-               </div>
-               <button type="submit" class="btn-submit">Starta tjänsten</button>
-            </form>
-         </section>
+        <aside class="sidebar">
+          <h3 class="sidebar-title">MEST LÄST JUST NU</h3>
+          <ol class="top-list">
+            <li>
+              <span class="rank">1</span>
+              <p>Fastighetsägare klagar på 38 bostäder: "Oväntat"</p>
+            </li>
+            <li>
+              <span class="rank">2</span>
+              <p>Attacken på häktet – vakt fick ärtsoppa i ansiktet</p>
+            </li>
+            <li>
+              <span class="rank">3</span>
+              <p>Guide: Så ser du världsarv på din resa</p>
+            </li>
+          </ol>
+        </aside>
       </main>
+    </div>
 
-      <footer class="footer">
-         <div class="container">
-            <p>Projekt GIK377 - Dagspressutgivarna AB</p>
-         </div>
-      </footer>
+    <div id="unescoModal" class="modal-overlay">
+      <div class="modal-window">
+        <span class="close-modal" id="closeAdBtn">&times;</span>
+        <div class="modal-header">
+          <img
+            src="https://upload.wikimedia.org/wikipedia/commons/b/b1/UNESCO_logo.svg"
+            alt="UNESCO"
+            class="modal-logo-small"
+          />
+          <div>
+            <h2>Världsarvstjänsten</h2>
+            <p>Lokal information i realtid</p>
+          </div>
+        </div>
+        <div class="modal-body">
+          <div class="map-placeholder">
+            <span style="font-size: 40px">📍</span>
+            <p>Interaktiv karta laddas...</p>
+          </div>
+          <div class="info-card">
+            <h3>Örlogsstaden Karlskrona</h3>
+            <p>
+              Utforska en av världens bäst bevarade örlogsstäder. Använd kartan
+              ovan för att hitta specifika monument.
+            </p>
+          </div>
+          <div class="subscription-box">
+            <h4>Prenumerera på SMS-notiser</h4>
+            <div class="auth-action">
+              <input
+                type="tel"
+                placeholder="Ditt mobilnummer"
+                id="phoneInput"
+              />
+              <button class="btn-bankid" id="bankidBtn">
+                <img
+                  src="https://upload.wikimedia.org/wikipedia/commons/4/4e/BankID_logo.svg"
+                  alt="BankID"
+                  style="width: 20px"
+                />
+                Legitimera med BankID
+              </button>
+            </div>
+          </div>
+          <div style="text-align: center; margin-top: 20px">
+            <button class="btn-secondary">✨ Fråga AI-guiden</button>
+          </div>
+        </div>
+      </div>
+    </div>
 
-      <script src="../static/js/app.js"></script>
-   </body>
+    <script src="../static/js/script.js"></script>
+  </body>
 </html>
