@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Auth Test Frontend</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1100px;
+      margin: 30px auto;
+      padding: 0 16px;
+      background: #f5f5f5;
+      color: #222;
+    }
+
+    h1 {
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      color: #555;
+      margin-bottom: 24px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    }
+
+    label {
+      display: block;
+      font-size: 14px;
+      margin-top: 10px;
+      margin-bottom: 4px;
+      color: #333;
+    }
+
+    input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    button {
+      margin-top: 12px;
+      padding: 10px 14px;
+      border: 0;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      background: #222;
+      color: white;
+    }
+
+    button.secondary {
+      background: #666;
+    }
+
+    button.danger {
+      background: #9b1c1c;
+    }
+
+    .row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .token-box {
+      background: #eee;
+      padding: 10px;
+      border-radius: 8px;
+      word-break: break-all;
+      font-size: 13px;
+      min-height: 20px;
+    }
+
+    pre {
+      background: #111;
+      color: #e8e8e8;
+      padding: 14px;
+      border-radius: 12px;
+      overflow-x: auto;
+      min-height: 160px;
+    }
+
+    .small {
+      font-size: 13px;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <h1>Auth Test Frontend</h1>
+  <p class="subtitle">Simple test page for FastAPI auth, JWT, BankID and 2FA.</p>
+
+  <div class="card">
+    <label>Backend URL</label>
+    <input id="apiBase" value="http://127.0.0.1:8000" />
+    <div class="row">
+      <button onclick="healthCheck()">Health check</button>
+      <button class="secondary" onclick="clearOutput()">Clear output</button>
+    </div>
+  </div>
+
+  <br />
+
+  <div class="grid">
+    <div class="card">
+      <h2>1. Register</h2>
+      <label>Email</label>
+      <input id="registerEmail" value="test@example.com" />
+
+      <label>Password</label>
+      <input id="registerPassword" type="password" value="test1234" />
+
+      <label>Full name</label>
+      <input id="registerName" value="Test User" />
+
+      <label>Home address</label>
+      <input id="homeAddress" value="Borlänge, Sweden" />
+
+      <label>Home latitude</label>
+      <input id="homeLat" value="60.485" />
+
+      <label>Home longitude</label>
+      <input id="homeLon" value="15.432" />
+
+      <button onclick="registerUser()">Register</button>
+    </div>
+
+    <div class="card">
+      <h2>2. Login</h2>
+      <label>Email</label>
+      <input id="loginEmail" value="test@example.com" />
+
+      <label>Password</label>
+      <input id="loginPassword" type="password" value="test1234" />
+
+      <button onclick="loginUser()">Login</button>
+
+      <p class="small">If 2FA is enabled, login should return a temp token instead of a normal access token.</p>
+    </div>
+
+    <div class="card">
+      <h2>3. Token</h2>
+      <p class="small">Access token:</p>
+      <div id="accessTokenBox" class="token-box"></div>
+      <p class="small">2FA temp token:</p>
+      <div id="tempTokenBox" class="token-box"></div>
+
+      <div class="row">
+        <button onclick="getMe()">GET /auth/me</button>
+        <button class="danger" onclick="clearTokens()">Clear tokens</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>4. 2FA setup</h2>
+      <p class="small">Login first, then use setup. Copy the secret into Microsoft/Google Authenticator manually.</p>
+
+      <button onclick="setup2FA()">Setup 2FA</button>
+
+      <label>Secret from backend</label>
+      <input id="twoFaSecret" placeholder="Secret appears here after setup" />
+
+      <label>6-digit code from authenticator app</label>
+      <input id="twoFaCode" placeholder="123456" />
+
+      <div class="row">
+        <button onclick="enable2FA()">Enable 2FA</button>
+        <button class="danger" onclick="disable2FA()">Disable 2FA</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>5. 2FA login</h2>
+      <p class="small">Use this after login returns requires_2fa + temp_token.</p>
+
+      <label>6-digit code</label>
+      <input id="loginTwoFaCode" placeholder="123456" />
+
+      <button onclick="complete2FALogin()">Complete 2FA login</button>
+    </div>
+
+    <div class="card">
+      <h2>6. BankID</h2>
+      <p class="small">Initiate first, then paste/check the orderRef.</p>
+
+      <button onclick="bankIdInitiate()">BankID initiate</button>
+
+      <label>orderRef</label>
+      <input id="bankIdOrderRef" placeholder="orderRef" />
+
+      <button onclick="bankIdStatus()">BankID status</button>
+    </div>
+  </div>
+
+  <h2>Output</h2>
+  <pre id="output">Ready.</pre>
+
+  <script>
+    let accessToken = localStorage.getItem("accessToken") || "";
+    let tempToken = localStorage.getItem("tempToken") || "";
+
+    updateTokenBoxes();
+
+    function apiBase() {
+      return document.getElementById("apiBase").value.replace(/\/$/, "");
+    }
+
+    function show(data) {
+      document.getElementById("output").textContent = JSON.stringify(data, null, 2);
+    }
+
+    function clearOutput() {
+      document.getElementById("output").textContent = "Ready.";
+    }
+
+    function updateTokenBoxes() {
+      document.getElementById("accessTokenBox").textContent = accessToken || "No access token yet";
+      document.getElementById("tempTokenBox").textContent = tempToken || "No temp token yet";
+    }
+
+    function saveAccessToken(token) {
+      accessToken = token || "";
+      if (accessToken) localStorage.setItem("accessToken", accessToken);
+      updateTokenBoxes();
+    }
+
+    function saveTempToken(token) {
+      tempToken = token || "";
+      if (tempToken) localStorage.setItem("tempToken", tempToken);
+      updateTokenBoxes();
+    }
+
+    function clearTokens() {
+      accessToken = "";
+      tempToken = "";
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("tempToken");
+      updateTokenBoxes();
+      show({ message: "Tokens cleared" });
+    }
+
+    async function request(path, options = {}) {
+      const headers = {
+        "Content-Type": "application/json",
+        ...(options.headers || {})
+      };
+
+      const response = await fetch(`${apiBase()}${path}`, {
+        ...options,
+        headers
+      });
+
+      let data;
+      try {
+        data = await response.json();
+      } catch {
+        data = { raw: await response.text() };
+      }
+
+      return {
+        ok: response.ok,
+        status: response.status,
+        data
+      };
+    }
+
+    async function healthCheck() {
+      const result = await request("/health");
+      show(result);
+    }
+
+    async function registerUser() {
+      const body = {
+        email: document.getElementById("registerEmail").value,
+        password: document.getElementById("registerPassword").value,
+        full_name: document.getElementById("registerName").value,
+        home_address: document.getElementById("homeAddress").value,
+        home_lat: parseFloat(document.getElementById("homeLat").value),
+        home_lon: parseFloat(document.getElementById("homeLon").value)
+      };
+
+      const result = await request("/auth/register", {
+        method: "POST",
+        body: JSON.stringify(body)
+      });
+
+      show(result);
+    }
+
+    async function loginUser() {
+      const body = {
+        email: document.getElementById("loginEmail").value,
+        password: document.getElementById("loginPassword").value
+      };
+
+      const result = await request("/auth/login", {
+        method: "POST",
+        body: JSON.stringify(body)
+      });
+
+      if (result.data.access_token) {
+        saveAccessToken(result.data.access_token);
+      }
+
+      if (result.data.temp_token) {
+        saveTempToken(result.data.temp_token);
+      }
+
+      show(result);
+    }
+
+    async function getMe() {
+      const result = await request("/auth/me", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        }
+      });
+
+      show(result);
+    }
+
+    async function setup2FA() {
+      const result = await request("/auth/2fa/setup", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        }
+      });
+
+      if (result.data.secret) {
+        document.getElementById("twoFaSecret").value = result.data.secret;
+      }
+
+      show(result);
+    }
+
+    async function enable2FA() {
+      const body = {
+        code: document.getElementById("twoFaCode").value
+      };
+
+      const result = await request("/auth/2fa/enable", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        },
+        body: JSON.stringify(body)
+      });
+
+      show(result);
+    }
+
+    async function disable2FA() {
+      const body = {
+        code: document.getElementById("twoFaCode").value
+      };
+
+      const result = await request("/auth/2fa/disable", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        },
+        body: JSON.stringify(body)
+      });
+
+      show(result);
+    }
+
+    async function complete2FALogin() {
+      const body = {
+        temp_token: tempToken,
+        code: document.getElementById("loginTwoFaCode").value
+      };
+
+      const result = await request("/auth/login/2fa", {
+        method: "POST",
+        body: JSON.stringify(body)
+      });
+
+      if (result.data.access_token) {
+        saveAccessToken(result.data.access_token);
+      }
+
+      show(result);
+    }
+
+    async function bankIdInitiate() {
+      const result = await request("/auth/bankid/initiate", {
+        method: "POST",
+        body: JSON.stringify({})
+      });
+
+      if (result.data.orderRef) {
+        document.getElementById("bankIdOrderRef").value = result.data.orderRef;
+      }
+
+      show(result);
+    }
+
+    async function bankIdStatus() {
+      const orderRef = document.getElementById("bankIdOrderRef").value;
+      const result = await request(`/auth/bankid/status/${orderRef}`);
+
+      if (result.data.access_token) {
+        saveAccessToken(result.data.access_token);
+      }
+
+      show(result);
+    }
+  </script>
+</body>
+</html>
