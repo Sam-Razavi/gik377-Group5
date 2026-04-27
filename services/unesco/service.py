@@ -2,7 +2,9 @@
 # Modul: UNESCO-data & Karttjänst
 # Hämtar världsarvsdata från UNESCO API och hanterar kartfunktionalitet
 
+import os
 import requests
+import anthropic
 from math import radians, sin, cos, sqrt, atan2
 
 BASE_URL = "https://data.unesco.org/api/explore/v2.1/catalog/datasets/whc001/records"
@@ -58,3 +60,43 @@ def get_sites_near(lat=BORLANGE_LAT, lon=BORLANGE_LON, radius_km=DEFAULT_RADIUS_
 
     nearby.sort(key=lambda s: s["distance_km"])
     return nearby
+
+
+def chat_about_unesco(message: str, sites: list) -> str:
+    """Svarar på frågor om världsarv med hjälp av Claude AI.
+
+    Använder prompt caching för att slippa skicka platsdata varje gång.
+    """
+    client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+
+    sites_text = "\n".join(
+        f"- {s.get('name_en', 'Okänt namn')} ({s.get('category', '?')}), "
+        f"{s.get('states_names', '')}, "
+        f"{round(s.get('distance_km', 0), 1)} km bort. "
+        f"{s.get('short_description_en', '')}"
+        for s in sites[:20]
+    )
+
+    response = client.messages.create(
+        model="claude-haiku-4-5",
+        max_tokens=512,
+        system=[
+            {
+                "type": "text",
+                "text": (
+                    "Du är en hjälpsam guide om UNESCO:s världsarv. "
+                    "Svara alltid på samma språk som användaren skriver på. "
+                    "Håll svaren kortfattade och informativa."
+                ),
+                "cache_control": {"type": "ephemeral"},
+            },
+            {
+                "type": "text",
+                "text": f"Här är de närmaste världsarven:\n{sites_text}",
+                "cache_control": {"type": "ephemeral"},
+            },
+        ],
+        messages=[{"role": "user", "content": message}],
+    )
+
+    return response.content[0].text
