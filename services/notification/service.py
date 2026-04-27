@@ -5,7 +5,11 @@
 import logging
 import re
 from services.notification.providers import SMSProvider, EmailProvider
-from services.notification.config import COOLDOWN_SECONDS
+from services.notification.config import (
+    COOLDOWN_SMS_SECONDS,
+    COOLDOWN_EMAIL_SECONDS,
+    SITE_PAGE_BASE_URL,
+)
 from services.notification import db
 from services.notification import messages
 
@@ -23,10 +27,17 @@ _PHONE_RE = re.compile(r"^\+?[0-9\s\-]{7,15}$")
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
+_COOLDOWN_BY_CHANNEL = {
+    "sms": COOLDOWN_SMS_SECONDS,
+    "email": COOLDOWN_EMAIL_SECONDS,
+}
+
+
 def _is_on_cooldown(user_id, site_id, channel):
     import time
     last = db.get_last_sent(user_id, site_id, channel)
-    return (time.time() - last) < COOLDOWN_SECONDS
+    window = _COOLDOWN_BY_CHANNEL.get(channel, 0)
+    return (time.time() - last) < window
 
 
 def validate_recipient(notification_type, to):
@@ -53,8 +64,8 @@ def send_notification(notification_type, to, message, **kwargs):
         site_id: (valfritt, för anti-spam)
     """
     if notification_type not in VALID_TYPES:
-        return {"success": False, "error": "invalid_type",
-                "message": "Ogiltig typ. Använd 'sms' eller 'email'."}
+        return {"success": False, "error": "invalid_channel",
+                "message": "Ogiltig kanal. Använd 'sms' eller 'email'."}
 
     validation_error = validate_recipient(notification_type, to)
     if validation_error:
@@ -159,6 +170,23 @@ def get_subscribers():
     return db.get_all_subscribers()
 
 
+def mark_visited(user_id, site_id):
+    """Bockar av att användaren har besökt världsarvet. Stoppar framtida notiser."""
+    if not user_id or not site_id:
+        return {"success": False, "error": "user_id och site_id krävs."}
+
+    if not db.subscriber_exists(user_id):
+        return {"success": False, "error": "Prenumerant finns inte."}
+
+    sub = db.get_subscriber(user_id)
+    if site_id not in sub.get("sites", []):
+        return {"success": False, "error": "Användaren prenumererar inte på denna plats."}
+
+    db.mark_visited(user_id, site_id)
+    logger.info("Markerade site=%s som besökt för user=%s", site_id, user_id)
+    return {"success": True, "user_id": user_id, "site_id": site_id, "visited": True}
+
+
 def trigger_for_location(user_id, site_id, site_name, link=None):
     """
     Triggas när en användare är nära ett världsarv.
@@ -171,6 +199,16 @@ def trigger_for_location(user_id, site_id, site_name, link=None):
 
     if site_id not in sub.get("sites", []):
         return [{"success": False, "error": "Användaren prenumererar inte på denna plats."}]
+
+    # Permanent block om användaren redan har bockat av världsarvet
+    if db.is_visited(user_id, site_id):
+        logger.info("Hoppar över notis: user=%s har redan besökt site=%s", user_id, site_id)
+        return [{"success": False, "error": "already_visited",
+                 "message": "Användaren har redan markerat detta världsarv som besökt."}]
+
+    # Bygg länk till världsarvssidan om ingen länk skickats med
+    if not link:
+        link = f"{SITE_PAGE_BASE_URL}?id={site_id}"
 
     results = []
     if sub.get("phone"):
