@@ -95,7 +95,7 @@ class StripeProvider:
 
     def cancel_subscription(self, subscription_id: str) -> bool:
         # Avbryter prenumerationen direkt i Stripe
-        sub = self._stripe.Subscription.delete(subscription_id)
+        sub = self._stripe.Subscription.cancel(subscription_id)
         return sub.status == "canceled"
 
     def get_subscription(self, subscription_id: str) -> Optional[Dict]:
