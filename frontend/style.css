@@ -196,3 +196,26 @@ pre {
   border-color: #cccccc;
   color: #333333;
 }
+
+.qr-wrapper {
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px dashed #bbb;
+  border-radius: 12px;
+  background: #fafafa;
+}
+
+.qr-image {
+  width: 190px;
+  height: 190px;
+  display: block;
+  margin: 10px 0;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  background: white;
+}
+
+.hidden {
+  display: none;
+}

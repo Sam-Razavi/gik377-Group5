@@ -13,8 +13,8 @@
       <header class="header">
         <h1>Auth Test Frontend</h1>
         <p>
-          Test frontend for FastAPI auth, JWT, BankID, 2FA, address,
-          latitude and longitude.
+          Test frontend for FastAPI auth, JWT, BankID, 2FA, address, latitude
+          and longitude.
         </p>
       </header>
 
@@ -151,13 +151,18 @@
           <h2>6. BankID</h2>
 
           <p class="hint">
-            First initiate BankID, then open the bankid:// link manually using
-            the autoStartToken.
+            Test both BankID on this device and Mobile BankID on another phone.
           </p>
 
-          <button type="button" onclick="bankIdInitiate()">
-            BankID initiate
-          </button>
+          <div class="button-row">
+            <button type="button" onclick="bankIdSameDeviceStart()">
+              BankID on this device
+            </button>
+
+            <button type="button" onclick="bankIdMobileQrStart()">
+              Mobile BankID QR
+            </button>
+          </div>
 
           <label for="bankIdAutoStartToken">autoStartToken</label>
           <input
@@ -169,12 +174,32 @@
           <label for="bankIdOrderRef">orderRef</label>
           <input id="bankIdOrderRef" placeholder="orderRef appears here" />
 
+          <div id="mobileBankIdQrWrapper" class="qr-wrapper hidden">
+            <p class="hint">
+              Scan this QR code with the BankID app on your extra phone.
+            </p>
+
+            <img
+              id="mobileBankIdQrImage"
+              class="qr-image"
+              alt="Mobile BankID QR code"
+            />
+
+            <p class="label-text">Current Mobile BankID QR data</p>
+            <div id="mobileBankIdQrData" class="token-box">No QR data yet</div>
+          </div>
+
           <div class="button-row">
             <button type="button" onclick="openBankIdApp()">
               Open BankID app
             </button>
+
             <button type="button" onclick="bankIdStatus()">
               BankID status
+            </button>
+
+            <button type="button" class="danger" onclick="stopBankIdPolling()">
+              Stop BankID polling
             </button>
           </div>
         </div>

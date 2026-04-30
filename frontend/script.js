@@ -4,6 +4,11 @@ let tempToken = localStorage.getItem("tempToken") || "";
 let bankIdPollTimer = null;
 let bankIdPollAttempts = 0;
 
+let mobileBankIdQrTimer = null;
+let mobileBankIdQrStartTime = null;
+let mobileBankIdQrStartToken = "";
+let mobileBankIdQrStartSecret = "";
+
 const BANKID_POLL_INTERVAL_MS = 2000;
 const BANKID_MAX_POLL_ATTEMPTS = 90;
 
@@ -475,6 +480,129 @@ async function complete2FALogin() {
   show(result);
 }
 
+/* -----------------------------
+   BankID QR helpers
+----------------------------- */
+
+function stopMobileBankIdQr() {
+  if (mobileBankIdQrTimer) {
+    clearInterval(mobileBankIdQrTimer);
+    mobileBankIdQrTimer = null;
+  }
+
+  mobileBankIdQrStartTime = null;
+  mobileBankIdQrStartToken = "";
+  mobileBankIdQrStartSecret = "";
+
+  const qrWrapper = document.getElementById("mobileBankIdQrWrapper");
+  const qrImage = document.getElementById("mobileBankIdQrImage");
+  const qrDataBox = document.getElementById("mobileBankIdQrData");
+
+  if (qrWrapper) {
+    qrWrapper.classList.add("hidden");
+  }
+
+  if (qrImage) {
+    qrImage.removeAttribute("src");
+  }
+
+  if (qrDataBox) {
+    qrDataBox.textContent = "No QR data yet";
+  }
+}
+
+async function hmacSha256Hex(secret, message) {
+  const encoder = new TextEncoder();
+
+  const keyData = encoder.encode(secret);
+  const messageData = encoder.encode(message);
+
+  const cryptoKey = await crypto.subtle.importKey(
+    "raw",
+    keyData,
+    {
+      name: "HMAC",
+      hash: "SHA-256",
+    },
+    false,
+    ["sign"]
+  );
+
+  const signature = await crypto.subtle.sign("HMAC", cryptoKey, messageData);
+
+  return Array.from(new Uint8Array(signature))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+async function updateMobileBankIdQr() {
+  if (
+    !mobileBankIdQrStartTime ||
+    !mobileBankIdQrStartToken ||
+    !mobileBankIdQrStartSecret
+  ) {
+    return;
+  }
+
+  const elapsedSeconds = Math.floor(
+    (Date.now() - mobileBankIdQrStartTime) / 1000
+  ).toString();
+
+  const qrAuthCode = await hmacSha256Hex(
+    mobileBankIdQrStartSecret,
+    elapsedSeconds
+  );
+
+  const qrData = `bankid.${mobileBankIdQrStartToken}.${elapsedSeconds}.${qrAuthCode}`;
+
+  const qrImage = document.getElementById("mobileBankIdQrImage");
+  const qrDataBox = document.getElementById("mobileBankIdQrData");
+
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=190x190&data=${encodeURIComponent(
+    qrData
+  )}`;
+
+  if (qrImage) {
+    qrImage.src = qrUrl;
+  }
+
+  if (qrDataBox) {
+    qrDataBox.textContent = qrData;
+  }
+}
+
+function startMobileBankIdQr(qrStartToken, qrStartSecret) {
+  const qrWrapper = document.getElementById("mobileBankIdQrWrapper");
+
+  if (!qrStartToken || !qrStartSecret) {
+    setStatus("Mobile BankID QR could not start because QR tokens are missing.", "error");
+    return;
+  }
+
+  if (!qrWrapper) {
+    setStatus("Mobile BankID QR HTML elements are missing.", "error");
+    return;
+  }
+
+  stopMobileBankIdQr();
+
+  mobileBankIdQrStartToken = qrStartToken;
+  mobileBankIdQrStartSecret = qrStartSecret;
+  mobileBankIdQrStartTime = Date.now();
+
+  qrWrapper.classList.remove("hidden");
+
+  updateMobileBankIdQr();
+
+  mobileBankIdQrTimer = setInterval(() => {
+    updateMobileBankIdQr();
+  }, 1000);
+}
+
+/* -----------------------------
+   BankID polling and flows
+----------------------------- */
+
 function stopBankIdPolling() {
   if (bankIdPollTimer) {
     clearInterval(bankIdPollTimer);
@@ -482,6 +610,9 @@ function stopBankIdPolling() {
   }
 
   bankIdPollAttempts = 0;
+  stopMobileBankIdQr();
+
+  setStatus("BankID polling stopped.", "info");
 }
 
 function startBankIdPolling(orderRef) {
@@ -490,7 +621,10 @@ function startBankIdPolling(orderRef) {
     return;
   }
 
-  stopBankIdPolling();
+  if (bankIdPollTimer) {
+    clearInterval(bankIdPollTimer);
+    bankIdPollTimer = null;
+  }
 
   bankIdPollAttempts = 0;
 
@@ -524,7 +658,13 @@ async function pollBankIdStatus(orderRef) {
   const hintCode = result.data.hintCode;
 
   if (status === "complete") {
-    stopBankIdPolling();
+    if (bankIdPollTimer) {
+      clearInterval(bankIdPollTimer);
+      bankIdPollTimer = null;
+    }
+
+    bankIdPollAttempts = 0;
+    stopMobileBankIdQr();
 
     if (result.data.access_token) {
       saveAccessToken(result.data.access_token);
@@ -559,11 +699,7 @@ async function pollBankIdStatus(orderRef) {
   );
 }
 
-async function bankIdInitiate() {
-  setStatus("Starting BankID authentication...", "loading");
-
-  stopBankIdPolling();
-
+async function initiateBankId() {
   const result = await request("/auth/bankid/initiate", {
     method: "POST",
     body: JSON.stringify({}),
@@ -572,7 +708,7 @@ async function bankIdInitiate() {
   if (!result.ok) {
     setStatus(`BankID initiate failed: ${getErrorMessage(result)}`, "error");
     show(result);
-    return;
+    return null;
   }
 
   if (result.data.orderRef) {
@@ -584,12 +720,74 @@ async function bankIdInitiate() {
       result.data.autoStartToken;
   }
 
+  show(result);
+  return result;
+}
+
+async function bankIdSameDeviceStart() {
+  setStatus("Starting BankID on this device...", "loading");
+
+  stopBankIdPolling();
+
+  const result = await initiateBankId();
+
+  if (!result) return;
+
+  if (result.data.orderRef) {
+    startBankIdPolling(result.data.orderRef);
+  }
+
+  if (result.data.autoStartToken) {
+    openBankIdApp();
+  } else {
+    setStatus("BankID started, but no autoStartToken was returned.", "warning");
+  }
+}
+
+async function bankIdMobileQrStart() {
+  setStatus("Starting Mobile BankID QR...", "loading");
+
+  stopBankIdPolling();
+
+  const result = await initiateBankId();
+
+  if (!result) return;
+
+  if (!result.data.qrStartToken || !result.data.qrStartSecret) {
+    setStatus("Backend did not return qrStartToken or qrStartSecret.", "error");
+    show(result);
+    return;
+  }
+
+  startMobileBankIdQr(result.data.qrStartToken, result.data.qrStartSecret);
+
   setStatus(
-    "BankID initiated. Open the BankID app and approve. Status will update automatically.",
+    "Mobile BankID QR started. Scan the QR code with the BankID app on your phone.",
     "success"
   );
 
-  show(result);
+  if (result.data.orderRef) {
+    startBankIdPolling(result.data.orderRef);
+  }
+}
+
+/*
+  Old generic initiate function.
+  Kept for compatibility if your HTML still has a BankID initiate button somewhere.
+*/
+async function bankIdInitiate() {
+  setStatus("Starting BankID authentication...", "loading");
+
+  stopBankIdPolling();
+
+  const result = await initiateBankId();
+
+  if (!result) return;
+
+  setStatus(
+    "BankID initiated. Choose Open BankID app for same-device login, or use Mobile BankID QR if visible.",
+    "success"
+  );
 
   if (result.data.orderRef) {
     startBankIdPolling(result.data.orderRef);
@@ -601,9 +799,9 @@ function openBankIdApp() {
   const orderRef = document.getElementById("bankIdOrderRef").value;
 
   if (!token) {
-    setStatus("No autoStartToken found. Click BankID initiate first.", "warning");
+    setStatus("No autoStartToken found. Start BankID on this device first.", "warning");
     show({
-      error: "No autoStartToken found. Click BankID initiate first.",
+      error: "No autoStartToken found. Start BankID on this device first.",
     });
     return;
   }
@@ -631,9 +829,9 @@ async function bankIdStatus() {
   const orderRef = document.getElementById("bankIdOrderRef").value;
 
   if (!orderRef) {
-    setStatus("No orderRef found. Click BankID initiate first.", "warning");
+    setStatus("No orderRef found. Start BankID first.", "warning");
     show({
-      error: "No orderRef found. Click BankID initiate first.",
+      error: "No orderRef found. Start BankID first.",
     });
     return;
   }
@@ -647,7 +845,13 @@ async function bankIdStatus() {
   }
 
   if (result.data.status === "complete") {
-    stopBankIdPolling();
+    if (bankIdPollTimer) {
+      clearInterval(bankIdPollTimer);
+      bankIdPollTimer = null;
+    }
+
+    bankIdPollAttempts = 0;
+    stopMobileBankIdQr();
 
     if (result.data.access_token) {
       saveAccessToken(result.data.access_token);
