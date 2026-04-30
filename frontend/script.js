@@ -170,6 +170,220 @@ async function request(path, options = {}) {
   }
 }
 
+/* -----------------------------
+   Location and profile helpers
+----------------------------- */
+
+function getBrowserLocation() {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error("Geolocation is not supported by this browser."));
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        resolve({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracy: position.coords.accuracy,
+        });
+      },
+      (error) => {
+        let message = "Could not get current location.";
+
+        if (error.code === error.PERMISSION_DENIED) {
+          message = "Location permission was denied.";
+        }
+
+        if (error.code === error.POSITION_UNAVAILABLE) {
+          message = "Location information is unavailable.";
+        }
+
+        if (error.code === error.TIMEOUT) {
+          message = "Location request timed out.";
+        }
+
+        reject(new Error(message));
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      }
+    );
+  });
+}
+
+async function useCurrentLocationForRegister() {
+  setStatus("Asking browser for your current location...", "loading");
+
+  try {
+    const location = await getBrowserLocation();
+
+    document.getElementById("homeLat").value = location.latitude.toFixed(6);
+    document.getElementById("homeLon").value = location.longitude.toFixed(6);
+
+    if (!document.getElementById("homeAddress").value.trim()) {
+      document.getElementById("homeAddress").value = "Current location";
+    }
+
+    setStatus(
+      `Location added to register form. Accuracy: about ${Math.round(
+        location.accuracy
+      )} meters.`,
+      "success"
+    );
+
+    show({
+      message: "Current location added to register form",
+      latitude: location.latitude,
+      longitude: location.longitude,
+      accuracy_meters: location.accuracy,
+    });
+  } catch (error) {
+    setStatus(error.message, "error");
+    show({
+      error: error.message,
+    });
+  }
+}
+
+async function useCurrentLocationForProfile() {
+  setStatus("Asking browser for your current location...", "loading");
+
+  try {
+    const location = await getBrowserLocation();
+
+    document.getElementById("profileHomeLat").value =
+      location.latitude.toFixed(6);
+    document.getElementById("profileHomeLon").value =
+      location.longitude.toFixed(6);
+
+    if (!document.getElementById("profileHomeAddress").value.trim()) {
+      document.getElementById("profileHomeAddress").value = "Current location";
+    }
+
+    setStatus(
+      `Location added to profile form. Accuracy: about ${Math.round(
+        location.accuracy
+      )} meters. Click Update profile to save it.`,
+      "success"
+    );
+
+    show({
+      message: "Current location added to profile form",
+      latitude: location.latitude,
+      longitude: location.longitude,
+      accuracy_meters: location.accuracy,
+    });
+  } catch (error) {
+    setStatus(error.message, "error");
+    show({
+      error: error.message,
+    });
+  }
+}
+
+function fillProfileFormFromUser(user) {
+  if (!user) return;
+
+  document.getElementById("profileFullName").value = user.full_name || "";
+  document.getElementById("profileHomeAddress").value =
+    user.home_address || "";
+  document.getElementById("profileHomeLat").value =
+    user.home_lat !== null && user.home_lat !== undefined ? user.home_lat : "";
+  document.getElementById("profileHomeLon").value =
+    user.home_lon !== null && user.home_lon !== undefined ? user.home_lon : "";
+}
+
+function isProfileLocationIncomplete(user) {
+  if (!user) return false;
+
+  return (
+    !user.home_address ||
+    user.home_lat === null ||
+    user.home_lat === undefined ||
+    user.home_lon === null ||
+    user.home_lon === undefined
+  );
+}
+
+function checkProfileCompletion(user, source = "login") {
+  if (!user) return;
+
+  fillProfileFormFromUser(user);
+
+  if (isProfileLocationIncomplete(user)) {
+    setStatus(
+      `${source} successful. Profile location is missing. Use the Profile / Location section to add it.`,
+      "warning"
+    );
+  }
+}
+
+async function updateProfile() {
+  setStatus("Updating profile...", "loading");
+
+  if (!accessToken) {
+    setStatus("You must login before updating your profile.", "warning");
+    return;
+  }
+
+  const fullName = document.getElementById("profileFullName").value.trim();
+  const homeAddress = document
+    .getElementById("profileHomeAddress")
+    .value.trim();
+  const homeLat = document.getElementById("profileHomeLat").value.trim();
+  const homeLon = document.getElementById("profileHomeLon").value.trim();
+
+  const body = {};
+
+  if (fullName) {
+    body.full_name = fullName;
+  }
+
+  if (homeAddress) {
+    body.home_address = homeAddress;
+  }
+
+  if (homeLat) {
+    body.home_lat = parseFloat(homeLat);
+  }
+
+  if (homeLon) {
+    body.home_lon = parseFloat(homeLon);
+  }
+
+  if (Object.keys(body).length === 0) {
+    setStatus("No profile fields to update.", "warning");
+    return;
+  }
+
+  const result = await request("/auth/me/profile", {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!result.ok) {
+    setStatus(`Profile update failed: ${getErrorMessage(result)}`, "error");
+    show(result);
+    return;
+  }
+
+  fillProfileFormFromUser(result.data);
+
+  setStatus("Profile updated successfully.", "success");
+  show(result);
+}
+
+/* -----------------------------
+   General auth
+----------------------------- */
+
 async function healthCheck() {
   setStatus("Checking backend connection...", "loading");
 
@@ -192,8 +406,8 @@ async function registerUser() {
   const password = document.getElementById("registerPassword").value;
   const fullName = document.getElementById("registerName").value.trim();
   const homeAddress = document.getElementById("homeAddress").value.trim();
-  const homeLat = document.getElementById("homeLat").value;
-  const homeLon = document.getElementById("homeLon").value;
+  const homeLat = document.getElementById("homeLat").value.trim();
+  const homeLon = document.getElementById("homeLon").value.trim();
 
   if (!email || !password || !fullName) {
     setStatus("Please fill in email, password and full name.", "warning");
@@ -222,6 +436,8 @@ async function registerUser() {
 
   document.getElementById("loginEmail").value = email;
   document.getElementById("loginPassword").value = password;
+
+  fillProfileFormFromUser(result.data);
 
   setStatus("User registered successfully. You can now login.", "success");
   show(result);
@@ -264,12 +480,26 @@ async function loginUser() {
 
   if (result.data.access_token) {
     saveAccessToken(result.data.access_token);
+
     setStatus("Login successful. Access token saved.", "success");
+
+    const meResult = await request("/auth/me", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    if (meResult.ok) {
+      fillProfileFormFromUser(meResult.data);
+      checkProfileCompletion(meResult.data, "Login");
+    }
+
+    show(result);
   } else {
     setStatus("Login worked, but no access token was returned.", "warning");
+    show(result);
   }
-
-  show(result);
 }
 
 async function getMe() {
@@ -293,9 +523,20 @@ async function getMe() {
     return;
   }
 
-  setStatus("Current user loaded successfully.", "success");
+  fillProfileFormFromUser(result.data);
+
+  if (isProfileLocationIncomplete(result.data)) {
+    setStatus("Current user loaded. Profile location is missing.", "warning");
+  } else {
+    setStatus("Current user loaded successfully.", "success");
+  }
+
   show(result);
 }
+
+/* -----------------------------
+   2FA
+----------------------------- */
 
 async function setup2FA() {
   setStatus("Setting up 2FA...", "loading");
@@ -473,6 +714,18 @@ async function complete2FALogin() {
     updateTokenBoxes();
 
     setStatus("2FA login successful. Access token saved.", "success");
+
+    const meResult = await request("/auth/me", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    if (meResult.ok) {
+      fillProfileFormFromUser(meResult.data);
+      checkProfileCompletion(meResult.data, "2FA login");
+    }
   } else {
     setStatus("2FA login worked, but no access token was returned.", "warning");
   }
@@ -668,7 +921,21 @@ async function pollBankIdStatus(orderRef) {
 
     if (result.data.access_token) {
       saveAccessToken(result.data.access_token);
-      setStatus("BankID login complete. Access token saved.", "success");
+
+      if (result.data.user) {
+        fillProfileFormFromUser(result.data.user);
+
+        if (isProfileLocationIncomplete(result.data.user)) {
+          setStatus(
+            "BankID login complete. Access token saved. Profile location is missing, please complete it.",
+            "warning"
+          );
+        } else {
+          setStatus("BankID login complete. Access token saved.", "success");
+        }
+      } else {
+        setStatus("BankID login complete. Access token saved.", "success");
+      }
     } else {
       setStatus("BankID completed, but no access token was returned.", "warning");
     }
@@ -771,10 +1038,6 @@ async function bankIdMobileQrStart() {
   }
 }
 
-/*
-  Old generic initiate function.
-  Kept for compatibility if your HTML still has a BankID initiate button somewhere.
-*/
 async function bankIdInitiate() {
   setStatus("Starting BankID authentication...", "loading");
 
@@ -855,7 +1118,21 @@ async function bankIdStatus() {
 
     if (result.data.access_token) {
       saveAccessToken(result.data.access_token);
-      setStatus("BankID login complete. Access token saved.", "success");
+
+      if (result.data.user) {
+        fillProfileFormFromUser(result.data.user);
+
+        if (isProfileLocationIncomplete(result.data.user)) {
+          setStatus(
+            "BankID login complete. Access token saved. Profile location is missing, please complete it.",
+            "warning"
+          );
+        } else {
+          setStatus("BankID login complete. Access token saved.", "success");
+        }
+      } else {
+        setStatus("BankID login complete. Access token saved.", "success");
+      }
     } else {
       setStatus("BankID completed, but no access token was returned.", "warning");
     }

@@ -58,7 +58,18 @@
           <label for="homeLon">Home longitude</label>
           <input id="homeLon" value="15.432" />
 
-          <button type="button" onclick="registerUser()">Register</button>
+          <div class="button-row">
+            <button type="button" onclick="useCurrentLocationForRegister()">
+              Use my current location
+            </button>
+
+            <button type="button" onclick="registerUser()">Register</button>
+          </div>
+
+          <p class="hint">
+            “Use my current location” asks the browser for permission and fills
+            latitude/longitude automatically before registration.
+          </p>
         </div>
 
         <div class="card">
@@ -96,7 +107,44 @@
         </div>
 
         <div class="card">
-          <h2>4. 2FA setup</h2>
+          <h2>4. Profile / Location</h2>
+
+          <p class="hint">
+            Update the logged-in user's profile. This works for email/password
+            users, BankID users and Mobile BankID users.
+          </p>
+
+          <label for="profileFullName">Full name</label>
+          <input id="profileFullName" placeholder="Full name" />
+
+          <label for="profileHomeAddress">Home address</label>
+          <input id="profileHomeAddress" placeholder="Example: Borlänge, Sweden" />
+
+          <label for="profileHomeLat">Latitude</label>
+          <input id="profileHomeLat" placeholder="Example: 60.485" />
+
+          <label for="profileHomeLon">Longitude</label>
+          <input id="profileHomeLon" placeholder="Example: 15.432" />
+
+          <div class="button-row">
+            <button type="button" onclick="useCurrentLocationForProfile()">
+              Use my current location
+            </button>
+
+            <button type="button" onclick="updateProfile()">
+              Update profile
+            </button>
+          </div>
+
+          <p class="hint">
+            “Use my current location” asks the browser for permission and fills
+            latitude/longitude automatically. You can still type the address
+            manually.
+          </p>
+        </div>
+
+        <div class="card">
+          <h2>5. 2FA setup</h2>
 
           <p class="hint">
             First login normally. Then click setup. Scan the QR code with
@@ -133,7 +181,7 @@
         </div>
 
         <div class="card">
-          <h2>5. 2FA login</h2>
+          <h2>6. 2FA login</h2>
 
           <p class="hint">
             Use this after login returns requires_2fa and a temporary token.
@@ -148,10 +196,12 @@
         </div>
 
         <div class="card">
-          <h2>6. BankID</h2>
+          <h2>7. BankID</h2>
 
           <p class="hint">
             Test both BankID on this device and Mobile BankID on another phone.
+            If a BankID user has no saved location, complete the profile after
+            login.
           </p>
 
           <div class="button-row">
