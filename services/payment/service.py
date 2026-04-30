@@ -56,6 +56,16 @@ class PaymentService:
     # Publikt API
     # ------------------------------------------------------------------
 
+    def create_checkout_session(
+        self, price_id: str, success_url: str, cancel_url: str
+    ) -> dict:
+        """Skapa en Stripe Checkout Session och returnera betalningslänken."""
+        return self._card_provider.create_checkout_session(price_id, success_url, cancel_url)
+
+    def create_payment_intent(self, price_id: str, email: str = "") -> dict:
+        """Skapa PaymentIntent för inbäddat kortformulär. Returnerar client_secret."""
+        return self._card_provider.create_payment_intent(price_id, email)
+
     def create_subscription(
         self, user_id: str, plan_id: str, method: str = "card"
     ) -> dict:
