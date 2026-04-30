@@ -8,7 +8,7 @@ from services.auth.repository import (
     get_user_by_bankid_personal_number,
     get_user_by_email,
 )
-from services.auth.schemas import UserCreate
+from services.auth.schemas import UserCreate, UserProfileUpdate
 from services.auth.security import (
     create_2fa_temp_token,
     create_access_token,
@@ -255,3 +255,19 @@ def complete_two_factor_login(
         "access_token": access_token,
         "token_type": "bearer",
     }
+
+
+def update_user_profile(
+    db: Session,
+    user: User,
+    profile_data: UserProfileUpdate,
+) -> User:
+    update_data = profile_data.model_dump(exclude_unset=True)
+
+    for field, value in update_data.items():
+        setattr(user, field, value)
+
+    db.commit()
+    db.refresh(user)
+
+    return user
