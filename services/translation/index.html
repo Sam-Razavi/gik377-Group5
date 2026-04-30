@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Översättningstjänst</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #f0f4f8;
+      color: #1a202c;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #1d3571;
+      color: #fff;
+      padding: 20px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    header h1 { font-size: 1.3rem; font-weight: 600; }
+    header p  { font-size: 0.85rem; color: #a0aec0; margin-top: 2px; }
+
+    .header-lang {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .header-lang label {
+      font-size: 13px;
+      color: #a0aec0;
+      white-space: nowrap;
+    }
+
+    .header-lang select {
+      font: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 8px 14px;
+      border: none;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.15);
+      color: #fff;
+      cursor: pointer;
+      min-width: 180px;
+    }
+
+    .header-lang select:focus { outline: 2px solid rgba(255,255,255,0.4); }
+    .header-lang select option { background: #1d3571; color: #fff; }
+
+    main {
+      max-width: 860px;
+      margin: 32px auto;
+      padding: 0 16px 60px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      padding: 24px;
+    }
+
+    .card h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: #2d3748;
+    }
+
+    .translate-grid {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .panel { display: flex; flex-direction: column; gap: 8px; }
+
+    .panel label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #718096;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    select {
+      font: inherit;
+      font-size: 13px;
+      padding: 7px 10px;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      background: #f7fafc;
+      color: #2d3748;
+      cursor: pointer;
+    }
+
+    textarea {
+      font: inherit;
+      font-size: 15px;
+      padding: 12px;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      resize: vertical;
+      min-height: 160px;
+      background: #fafafa;
+      transition: border-color 0.15s;
+      width: 100%;
+    }
+
+    textarea:focus { outline: none; border-color: #667eea; background: #fff; }
+
+    .result-box {
+      font-size: 15px;
+      padding: 12px;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      min-height: 160px;
+      background: #f7fafc;
+      color: #4a5568;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .result-box.loading { color: #a0aec0; font-style: italic; }
+    .result-box.error   { border-color: #fc8181; background: #fff5f5; color: #c53030; }
+
+    .arrow-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 36px;
+      gap: 12px;
+    }
+
+    button {
+      font: inherit;
+      cursor: pointer;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+
+    button:active { transform: scale(0.97); }
+
+    .btn-primary {
+      background: #667eea;
+      color: #fff;
+      padding: 12px 28px;
+    }
+
+    .btn-primary:hover { opacity: 0.88; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-ghost {
+      background: transparent;
+      color: #667eea;
+      border: 1px solid #667eea;
+      font-size: 12px;
+      padding: 6px 12px;
+    }
+
+    .btn-ghost:hover { background: #ebf4ff; }
+
+    .meta {
+      font-size: 12px;
+      color: #a0aec0;
+      margin-top: 4px;
+      min-height: 18px;
+    }
+
+    .actions {
+      display: flex;
+      justify-content: center;
+      margin-top: 16px;
+      gap: 10px;
+    }
+
+    .copy-btn {
+      font-size: 12px;
+      background: none;
+      border: none;
+      color: #667eea;
+      cursor: pointer;
+      padding: 2px 6px;
+    }
+
+    .copy-btn:hover { text-decoration: underline; }
+
+    .plan-box {
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 18px 20px;
+      margin-bottom: 16px;
+      background: #f7fafc;
+    }
+
+    .plan-name  { display:block; font-weight:600; font-size:15px; color:#2d3748; margin-bottom:6px; }
+    .plan-price { display:block; font-size:26px; font-weight:700; color:#1d3571; margin-bottom:10px; }
+    .plan-period { font-size:14px; font-weight:400; color:#718096; }
+
+    .plan-features {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .plan-features li::before { content: "✓ "; color:#48bb78; font-weight:700; }
+    .plan-features li { font-size:13px; color:#4a5568; }
+
+    .card-logos {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .btn-pay {
+      width: 100%;
+      padding: 15px;
+      background: #1d3571;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 700;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      letter-spacing: 0.02em;
+    }
+
+    .btn-pay:hover    { background: #16296b; }
+    .btn-pay:active   { transform: scale(0.99); }
+    .btn-pay:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .pay-note {
+      text-align: center;
+      font-size: 12px;
+      color: #a0aec0;
+      margin-top: 10px;
+    }
+
+    @media (max-width: 600px) {
+      .translate-grid {
+        grid-template-columns: 1fr;
+      }
+      .arrow-col { flex-direction: row; padding-top: 0; justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1 data-i18n>Översättningstjänst</h1>
+    <p data-i18n>Kopplad till backend på localhost:5001</p>
+  </div>
+  <div class="header-lang">
+    <label for="lang-header">Sidans språk</label>
+    <select id="lang-header" onchange="bytSidSprak(this.value)">
+      <option value="sv">Svenska (sv)</option>
+    </select>
+  </div>
+</header>
+
+<main>
+
+  <div class="card">
+    <h2 data-i18n>Översätt text</h2>
+
+    <div class="translate-grid">
+
+      <div class="panel">
+        <label for="lang-from" data-i18n>Källspråk</label>
+        <select id="lang-from">
+          <option value="auto" data-i18n>Detektera automatiskt</option>
+        </select>
+        <textarea id="text-in" placeholder="Skriv eller klistra in text här..."></textarea>
+        <div class="meta" id="char-count"></div>
+      </div>
+
+      <div class="arrow-col">
+        <span style="font-size:22px;color:#cbd5e0">⇄</span>
+        <button class="btn-ghost" data-i18n onclick="byt()">Byt</button>
+      </div>
+
+      <div class="panel">
+        <label for="lang-to" data-i18n>Målspråk</label>
+        <select id="lang-to"></select>
+        <div class="result-box" id="text-out">Översättningen visas här...</div>
+        <div class="meta" id="detected-lang"></div>
+      </div>
+
+    </div>
+
+    <div class="actions">
+      <button class="btn-primary" data-i18n id="btn-translate" onclick="oversatt()">Översätt</button>
+      <button class="copy-btn" data-i18n onclick="kopiera()">Kopiera resultat</button>
+    </div>
+  </div>
+
+  <!-- ── Betalning ─────────────────────────────────────────────────── -->
+  <div class="card" id="payment-card">
+    <h2 data-i18n>Prenumeration</h2>
+
+    <div class="plan-box">
+      <div class="plan-info">
+        <span class="plan-name" data-i18n>Översättningstjänst — Standard</span>
+        <span class="plan-price">99 kr<span class="plan-period" data-i18n>/månad</span></span>
+        <ul class="plan-features">
+          <li data-i18n>Obegränsade översättningar</li>
+          <li data-i18n>109 språk</li>
+          <li data-i18n>API-åtkomst</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card-logos">
+      <span data-i18n style="font-size:13px;color:#718096">Betalning via</span>
+      <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Visa_Inc._logo.svg/200px-Visa_Inc._logo.svg.png"
+           alt="Visa" height="22" style="vertical-align:middle">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Mastercard-logo.svg/200px-Mastercard-logo.svg.png"
+           alt="Mastercard" height="28" style="vertical-align:middle">
+      <svg height="20" viewBox="0 0 40 16" style="vertical-align:middle;opacity:0.5" fill="#718096">
+        <path d="M3 5h34v6H3z" rx="1"/>
+        <text x="20" y="12" text-anchor="middle" font-size="7" fill="white">SSL</text>
+      </svg>
+    </div>
+
+    <button class="btn-pay" id="btn-pay" onclick="startaBetalning()">
+      <span id="pay-text" data-i18n>Betala med kort</span>
+      <span id="pay-spinner" style="display:none">⏳ Förbereder...</span>
+    </button>
+
+    <p class="pay-note" data-i18n>Du skickas till Stripes säkra betalningssida. Avbryt när som helst.</p>
+
+    <div id="payment-result" style="display:none;margin-top:12px;padding:12px;border-radius:8px;font-size:14px"></div>
+  </div>
+
+</main>
+
+<script>
+  const BASE = 'http://localhost:5001';
+  let allLanguages = [];
+
+  // ── Ladda alla språk från API och fyll dropdowns ──────────────────────────
+  async function laddaSprak() {
+    try {
+      const r = await fetch(BASE + '/translate/languages');
+      allLanguages = await r.json();
+
+      const toSel   = document.getElementById('lang-to');
+      const fromSel = document.getElementById('lang-from');
+      const sidSel  = document.getElementById('lang-header');
+
+      toSel.innerHTML  = '';
+      sidSel.innerHTML = '';
+
+      // Svenska alltid först i sid-väljaren
+      const svOpt = document.createElement('option');
+      svOpt.value = 'sv';
+      svOpt.textContent = 'Svenska (sv)';
+      svOpt.selected = true;
+      sidSel.appendChild(svOpt);
+
+      for (const lang of allLanguages) {
+        // Översättnings-dropdowns (från/till)
+        const opt = document.createElement('option');
+        opt.value = lang.code;
+        opt.textContent = `${lang.name} (${lang.code})`;
+        if (lang.code === 'en') opt.selected = true;
+        toSel.appendChild(opt);
+        fromSel.appendChild(opt.cloneNode(true));
+
+        // Sid-väljaren (hoppa över sv — redan tillagd)
+        if (lang.code !== 'sv') {
+          sidSel.appendChild(opt.cloneNode(true));
+        }
+      }
+    } catch (e) {
+      console.error('Kunde inte ladda språk:', e);
+    }
+  }
+
+  // ── Översätt hela sidans UI-text ──────────────────────────────────────────
+  async function bytSidSprak(kod) {
+    const headerSel = document.getElementById('lang-header');
+    headerSel.disabled = true;
+
+    if (kod === 'sv') {
+      // Återställ original svenska texter
+      document.querySelectorAll('[data-orig]').forEach(el => {
+        el.textContent = el.getAttribute('data-orig');
+      });
+      headerSel.disabled = false;
+      return;
+    }
+
+    const elements = Array.from(document.querySelectorAll('[data-i18n]'));
+
+    // Samla original-texter innan vi börjar
+    elements.forEach(el => {
+      if (!el.getAttribute('data-orig')) {
+        el.setAttribute('data-orig', el.textContent.trim());
+      }
+    });
+
+    // Hämta alla texter att översätta
+    const texter = elements.map(el => el.getAttribute('data-orig')).filter(Boolean);
+
+    // Översätt alla parallellt
+    const lovar = texter.map((text, i) =>
+      fetch(BASE + '/translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, target_language: kod })
+      })
+      .then(r => r.json())
+      .then(data => { if (data.translated_text) elements[i].textContent = data.translated_text; })
+      .catch(() => {})
+    );
+
+    await Promise.all(lovar);
+    headerSel.disabled = false;
+  }
+
+  // ── Översätt text via formuläret ─────────────────────────────────────────
+  async function oversatt() {
+    const text = document.getElementById('text-in').value.trim();
+    if (!text) return;
+
+    const target = document.getElementById('lang-to').value;
+    const btn    = document.getElementById('btn-translate');
+    const out    = document.getElementById('text-out');
+    const detEl  = document.getElementById('detected-lang');
+
+    btn.disabled = true;
+    out.className = 'result-box loading';
+    out.textContent = 'Översätter...';
+    detEl.textContent = '';
+
+    try {
+      const r    = await fetch(BASE + '/translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, target_language: target })
+      });
+      const data = await r.json();
+
+      if (!r.ok) {
+        out.className = 'result-box error';
+        out.textContent = data.error || 'Okänt fel';
+      } else {
+        out.className = 'result-box';
+        out.textContent = data.translated_text;
+        if (data.detected_language && data.detected_language !== 'und') {
+          const namn = allLanguages.find(l => l.code === data.detected_language)?.name;
+          detEl.textContent = `Detekterat: ${namn || data.detected_language}`;
+        }
+      }
+    } catch (e) {
+      out.className = 'result-box error';
+      out.textContent = 'Kunde inte ansluta till servern (localhost:5001).';
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  // ── Byt käll- och målspråk ────────────────────────────────────────────────
+  function byt() {
+    const fromSel = document.getElementById('lang-from');
+    const toSel   = document.getElementById('lang-to');
+    const textIn  = document.getElementById('text-in');
+    const textOut = document.getElementById('text-out');
+
+    const gammalOut = textOut.textContent;
+    if (gammalOut && !textOut.classList.contains('loading') && !textOut.classList.contains('error')) {
+      textIn.value = gammalOut;
+      textOut.textContent = 'Översättningen visas här...';
+      textOut.className = 'result-box';
+    }
+
+    const f = fromSel.value;
+    fromSel.value = toSel.value !== 'auto' ? toSel.value : f;
+    toSel.value   = f !== 'auto' ? f : toSel.value;
+  }
+
+  // ── Kopiera resultat ──────────────────────────────────────────────────────
+  function kopiera() {
+    const text = document.getElementById('text-out').textContent;
+    if (text && text !== 'Översättningen visas här...') {
+      navigator.clipboard.writeText(text);
+    }
+  }
+
+  // ── Betalning ─────────────────────────────────────────────────────────────
+  async function startaBetalning() {
+    const btn     = document.getElementById('btn-pay');
+    const payText = document.getElementById('pay-text');
+    const spinner = document.getElementById('pay-spinner');
+    const res     = document.getElementById('payment-result');
+
+    btn.disabled        = true;
+    payText.style.display = 'none';
+    spinner.style.display = 'inline';
+
+    try {
+      const r = await fetch(BASE + '/payment/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          price_id:    'price_1TRWexHYkj0fomnS4KMiKL6Q',
+          success_url: window.location.origin + '/betalning/lyckades',
+          cancel_url:  window.location.origin + '/betalning/avbruten'
+        })
+      });
+      const data = await r.json();
+
+      if (!r.ok || data.error) {
+        res.style.display    = 'block';
+        res.style.background = '#fff5f5';
+        res.style.color      = '#c53030';
+        res.textContent      = data.error || 'Okänt fel';
+        return;
+      }
+
+      // Redirect till Stripes betalningssida
+      window.location.href = data.url;
+
+    } catch (e) {
+      res.style.display    = 'block';
+      res.style.background = '#fff5f5';
+      res.style.color      = '#c53030';
+      res.textContent      = 'Kunde inte ansluta till servern.';
+    } finally {
+      btn.disabled          = false;
+      payText.style.display = 'inline';
+      spinner.style.display = 'none';
+    }
+  }
+
+  document.getElementById('text-in').addEventListener('input', function() {
+    const n = this.value.length;
+    document.getElementById('char-count').textContent = n > 0 ? `${n} tecken` : '';
+  });
+
+  document.getElementById('text-in').addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') oversatt();
+  });
+
+  laddaSprak();
+</script>
+
+</body>
+</html>

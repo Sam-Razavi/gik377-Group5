@@ -13,4 +13,6 @@ python-multipart
 httpx
 email-validator
 anthropic
+google-cloud-translate
+google-auth-oauthlib
 pyotp

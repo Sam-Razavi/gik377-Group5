@@ -13,3 +13,8 @@ certs/
 *.pem
 *.p12
 *.pfx
+
+# Google credentials
+services/translation/credentials/
+token.json
+client_secret*.json

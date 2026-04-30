@@ -19,7 +19,7 @@ from services.unesco.routes import router as unesco_router
 from services.notification.routes import router as notification_router
 
 # Nina: Översättning
-from services.translation.routes import router as translation_router
+from services.translation.routes import router as translation_router, v3beta1_router as translation_v3beta1_router
 
 # Nina: Betalning
 from services.payment.routes import router as payment_router
@@ -99,6 +99,10 @@ app.include_router(notification_router)
 # Nina: Översättning
 # Prefix /translation är redan satt i services/translation/routes.py.
 app.include_router(translation_router)
+
+# Nina: Google Cloud Translation API v3beta1-kompatibel endpoint.
+# Mountas utan prefix så att sökvägen blir /v3beta1/projects/{project_id}:translateText.
+app.include_router(translation_v3beta1_router)
 
 
 # Nina: Betalning
