@@ -116,10 +116,10 @@ function clearTokens() {
 
   updateTokenBoxes();
 
-  setStatus("Tokens cleared. Login again to continue.", "info");
+  setStatus("Logged out. Login again to continue.", "info");
 
   show({
-    message: "Tokens cleared",
+    message: "Logged out",
   });
 }
 
