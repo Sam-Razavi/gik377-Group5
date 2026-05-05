@@ -20,7 +20,7 @@ sms_provider = SMSProvider()
 email_provider = EmailProvider()
 
 # Initiera databasen vid import
-db.init_db()
+#db.init_db()
 
 VALID_TYPES = ("sms", "email")
 _PHONE_RE = re.compile(r"^\+?[0-9\s\-]{7,15}$")
