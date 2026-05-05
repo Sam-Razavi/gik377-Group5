@@ -1,6 +1,8 @@
 let accessToken = localStorage.getItem("accessToken") || "";
 let tempToken = localStorage.getItem("tempToken") || "";
 
+const DEFAULT_API_BASE = "https://nordic-digital-solutions.onrender.com";
+
 let bankIdPollTimer = null;
 let bankIdPollAttempts = 0;
 
@@ -13,12 +15,24 @@ const BANKID_POLL_INTERVAL_MS = 2000;
 const BANKID_MAX_POLL_ATTEMPTS = 90;
 
 document.addEventListener("DOMContentLoaded", () => {
+  const apiBaseInput = document.getElementById("apiBase");
+
+  if (apiBaseInput && !apiBaseInput.value.trim()) {
+    apiBaseInput.value = DEFAULT_API_BASE;
+  }
+
   updateTokenBoxes();
   setStatus("Ready. Start with Health check.", "info");
 });
 
 function apiBase() {
-  return document.getElementById("apiBase").value.replace(/\/$/, "");
+  const apiBaseInput = document.getElementById("apiBase");
+
+  if (!apiBaseInput || !apiBaseInput.value.trim()) {
+    return DEFAULT_API_BASE;
+  }
+
+  return apiBaseInput.value.trim().replace(/\/$/, "");
 }
 
 function show(data) {
@@ -163,7 +177,7 @@ async function request(path, options = {}) {
       status: 0,
       data: {
         detail:
-          "Could not connect to backend. Make sure FastAPI is running on http://127.0.0.1:8000.",
+          "Could not connect to backend. Make sure the backend is running on Render.",
         error: error.message,
       },
     };
