@@ -13,3 +13,5 @@ certs/
 *.pem
 *.p12
 *.pfx
+
+.coverage
