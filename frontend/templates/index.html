@@ -4,6 +4,7 @@
       <meta charset="UTF-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       <title>Dagstidningen - Senaste Nytt</title>
+      <!-- Korrekt länkning till CSS utifrån din filstruktur -->
       <link rel="stylesheet" href="../static/css/style.css" />
    </head>
    <body>
@@ -38,7 +39,7 @@
                   förhandlingar under natten.
                </p>
 
-               <!-- ANNONS - TRIGGER (Gjord som Button för tillgänglighet) -->
+               <!-- Knapp för att öppna den första modalen -->
                <div class="ad-container">
                   <p class="ad-hint">ANNONS: VÄRLDSARVSTJÄNSTEN</p>
                   <button
@@ -85,7 +86,7 @@
          </main>
       </div>
 
-      <!-- MODAL 1: BESÖKARE -->
+      <!-- MODAL 1: REGISTRERING (FÖR BESÖKARE) -->
       <div
          id="unescoModal"
          class="modal-overlay"
@@ -155,7 +156,7 @@
          </div>
       </div>
 
-      <!-- MODAL 2: MINA SIDOR -->
+      <!-- MODAL 2: MINA SIDOR (PREMIUM-VY) -->
       <div
          id="memberModal"
          class="modal-overlay"
@@ -188,7 +189,7 @@
                      Du befinner dig just nu nära
                      <strong>Örlogsstaden Karlskrona</strong>.
                   </p>
-                  <div style="margin-top: 15px">
+                  <div class="checkbox-group">
                      <label class="custom-checkbox">
                         <input type="checkbox" id="visitedCheck" />
                         <span>Jag har besökt denna plats</span>
@@ -203,11 +204,11 @@
                   </h4>
                   <div class="chat-box" id="chatOutput" aria-live="polite">
                      Välkommen! Jag är din personliga guide till Örlogsstaden
-                     Karlskrona.
+                     Karlskrona. Vad vill du veta mer om platsen?
                   </div>
                   <div class="chat-input-area">
                      <label for="chatInput" class="visually-hidden"
-                        >Ställ en fråga till AI:n</label
+                        >Ställ en fråga</label
                      >
                      <input
                         type="text"
@@ -218,16 +219,15 @@
                </div>
 
                <div class="account-management">
-                  <div class="button-row">
-                     <button class="btn-cancel" onclick="confirmCancel()">
-                        Avsluta prenumeration
-                     </button>
-                  </div>
+                  <button class="btn-cancel" onclick="confirmCancel()">
+                     Avsluta prenumeration
+                  </button>
                </div>
             </div>
          </div>
       </div>
 
+      <!-- Korrekt länkning till JS utifrån din filstruktur -->
       <script src="../static/js/script.js"></script>
    </body>
 </html>

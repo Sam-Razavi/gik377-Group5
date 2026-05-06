@@ -1,3 +1,4 @@
+// MODAL-HANTERING
 const visitorModal = document.getElementById("unescoModal");
 const memberModal = document.getElementById("memberModal");
 const openBtn = document.getElementById("openAdBtn");
@@ -11,46 +12,48 @@ function openModal(modal) {
    lastFocusedElement = document.activeElement;
    modal.style.display = "flex";
    document.body.style.overflow = "hidden";
-   // Flytta fokus till stäng-knappen inuti modalen
    modal.querySelector(".close-modal").focus();
 }
 
 function closeModal(modal) {
    modal.style.display = "none";
    document.body.style.overflow = "auto";
-   // Återställ fokus till knappen som öppnade modalen
    if (lastFocusedElement) lastFocusedElement.focus();
 }
 
+// Öppna första modalen (Registrering)
 openBtn.onclick = () => openModal(visitorModal);
 
+// Stäng-knappar
 closeAdBtn.onclick = () => closeModal(visitorModal);
 closeMemberBtn.onclick = () => closeModal(memberModal);
 
+// Växla till inloggad vy
 toMemberLink.onclick = (e) => {
    e.preventDefault();
    visitorModal.style.display = "none";
    openModal(memberModal);
 };
 
-// AI-Chat simulering med aria-live stöd (via HTML)
+// CHATT-FUNKTIONALITET
 document.getElementById("sendChat").onclick = () => {
    const input = document.getElementById("chatInput");
    const output = document.getElementById("chatOutput");
-   if (input.value) {
-      output.innerHTML += `<br><strong>Du:</strong> ${input.value}<br><strong>AI:</strong> Karlskrona är en unik örlogsstad...`;
+   if (input.value.trim()) {
+      output.innerHTML += `<br><strong>Du:</strong> ${input.value}<br><strong>AI:</strong> Karlskrona är en unik örlogsstad med anor från 1600-talet...`;
       input.value = "";
       output.scrollTop = output.scrollHeight;
    }
 };
 
+// PRENUMERATION
 function confirmCancel() {
    if (confirm("Är du säker på att du vill avsluta din prenumeration?")) {
       alert("Prenumeration avslutad.");
    }
 }
 
-// Stäng vid klick utanför
+// STÄNG VID KLICK UTANFÖR ELLER ESC
 window.onclick = (e) => {
    if (e.target.classList.contains("modal-overlay")) {
       closeModal(visitorModal);
@@ -58,7 +61,6 @@ window.onclick = (e) => {
    }
 };
 
-// Stäng med Escape-tangenten
 document.addEventListener("keydown", (e) => {
    if (e.key === "Escape") {
       closeModal(visitorModal);
