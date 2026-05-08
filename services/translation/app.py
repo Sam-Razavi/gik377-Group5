@@ -60,7 +60,7 @@ load_dotenv(os.path.join(HERE, ".env"))
 # Om Google-credentials finns, sätt miljövariabeln automatiskt
 _creds = os.path.join(HERE, "credentials", "client_secret.json")
 if os.path.exists(_creds):
-    os.environ.setdefault("GOOGLE_CLIENT_SECRET_FILE", _creds)
+    os.environ["GOOGLE_CLIENT_SECRET_FILE"] = _creds
 
 # Importera tjänsterna — translation hanterar översättning, payment hanterar Stripe
 from translation.service import TranslationService
