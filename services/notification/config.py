@@ -18,12 +18,12 @@ def _require_env(key):
 
 # HelloSMS (SMS-provider)
 HELLOSMS_API_URL = os.getenv("HELLOSMS_API_URL", "https://api.hellosms.se/v1/")
-HELLOSMS_USERNAME = _require_env("HELLOSMS_USERNAME")
-HELLOSMS_PASSWORD = _require_env("HELLOSMS_PASSWORD")
+HELLOSMS_USERNAME = os.getenv("HELLOSMS_USERNAME", "")
+HELLOSMS_PASSWORD = os.getenv("HELLOSMS_PASSWORD", "")
 
 # SMTP2GO (E-post-provider)
 SMTP2GO_API_URL = os.getenv("SMTP2GO_API_URL", "https://api.smtp2go.com/v3/")
-SMTP2GO_API_KEY = _require_env("SMTP2GO_API_KEY")
+SMTP2GO_API_KEY = os.getenv("SMTP2GO_API_KEY", "")
 SMTP2GO_SENDER = os.getenv("SMTP2GO_SENDER", "noreply@nordicdigitalsolutions.se")
 
 # Debug-token för skyddade endpoints (t.ex. /subscribers)
@@ -50,5 +50,13 @@ COOLDOWN_EMAIL_SECONDS = COOLDOWN_EMAIL_HOURS * 3600
 PG_HOST = os.getenv("NOTIFICATION_PG_HOST", "localhost")
 PG_PORT = int(os.getenv("NOTIFICATION_PG_PORT", "5432"))
 PG_DATABASE = os.getenv("NOTIFICATION_PG_DATABASE", "notification")
-PG_USER = _require_env("NOTIFICATION_PG_USER")
-PG_PASSWORD = _require_env("NOTIFICATION_PG_PASSWORD")
+PG_USER = os.getenv("NOTIFICATION_PG_USER", "")
+PG_PASSWORD = os.getenv("NOTIFICATION_PG_PASSWORD", "")
+
+NOTIFICATION_MOCK_MODE = not bool(
+    HELLOSMS_USERNAME
+    and HELLOSMS_PASSWORD
+    and SMTP2GO_API_KEY
+    and PG_USER
+    and PG_PASSWORD
+)
