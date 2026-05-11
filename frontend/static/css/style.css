@@ -1,329 +1,345 @@
-/* GRUNDSTYLING */
+/* ALLMÄNNA INSTÄLLNINGAR OCH RESPONSIVITET */
+* {
+   box-sizing: border-box;
+}
+
 :root {
-  --unesco-blue: #0077d4;
-  --unesco-dark: #00569d;
-  --news-red: #cc0000;
-  --text-main: #1a1a1a;
-  --text-muted: #666;
-  --bg-light: #f8f9fa;
-  --border-color: #eaeaea;
+   --unesco-blue: #0077d4;
+   --unesco-dark: #004a85;
+   --news-red: #cc0000;
+   --bg-light: #f4f7f9;
+   --bankid-blue: #003087;
+   --text-main: #1a1a1a;
+   --text-muted: #454545;
 }
 
 body {
-  font-family: "Georgia", serif; /* Klassiskt tidningstypsnitt för brödtext */
-  margin: 0;
-  background-color: #eee;
-  color: var(--text-main);
+   font-family: "Georgia", serif;
+   margin: 0;
+   padding: 0;
+   background-color: #eee;
+   color: var(--text-main);
+   overflow-x: hidden;
 }
 
 .top-accent {
-  height: 4px;
-  background: var(--news-red);
+   height: 4px;
+   background: var(--news-red);
 }
 
+/* TIDNINGS-LAYOUT */
 .news-wrapper {
-  max-width: 1100px;
-  margin: 0 auto;
-  background: white;
-  min-height: 100vh;
-  box-shadow: 0 0 30px rgba(0, 0, 0, 0.1);
+   width: 100%;
+   max-width: 1100px;
+   margin: 0 auto;
+   background: white;
+   min-height: 100vh;
 }
 
-/* HEADER */
 .news-header {
-  padding: 30px 40px 10px;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.header-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+   padding: 20px 40px;
+   border-bottom: 1px solid #eaeaea;
 }
 
 .logo {
-  font-family: "Arial Black", sans-serif;
-  font-size: 2.8rem;
-  margin: 0;
-  letter-spacing: -2px;
+   font-family: "Arial Black", sans-serif;
+   font-size: 2.5rem;
+   margin: 0;
+   letter-spacing: -2px;
 }
 
 .logo span {
-  color: var(--news-red);
+   color: var(--news-red);
 }
 
-.main-nav {
-  font-family: "Arial", sans-serif;
-  font-weight: bold;
-  font-size: 0.9rem;
-  display: flex;
-  gap: 20px;
+.main-nav ul {
+   list-style: none;
+   padding: 0;
+   display: flex;
+   flex-wrap: wrap;
+   gap: 20px;
+   font-family: Arial, sans-serif;
+   font-weight: bold;
+   margin-top: 15px;
 }
 
-.sub-header {
-  display: flex;
-  justify-content: space-between;
-  font-family: Arial, sans-serif;
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  margin-top: 15px;
+.main-nav a {
+   color: var(--text-main);
+   text-decoration: none;
 }
 
-/* LAYOUT */
 .news-main {
-  display: grid;
-  grid-template-columns: 1fr 300px;
-  gap: 50px;
-  padding: 40px;
-}
-
-/* ARTIKEL */
-.main-article {
-  font-size: 1.15rem;
-  line-height: 1.7;
-}
-
-.category-tag {
-  font-family: Arial, sans-serif;
-  color: var(--news-red);
-  font-weight: bold;
-  border-bottom: 2px solid var(--news-red);
-  padding-bottom: 2px;
+   display: grid;
+   grid-template-columns: 1fr 300px;
+   gap: 50px;
+   padding: 40px;
 }
 
 .article-title {
-  font-size: 3rem;
-  line-height: 1.1;
-  margin: 20px 0;
+   font-size: 3rem;
+   line-height: 1.1;
+   margin: 20px 0;
+   word-wrap: break-word;
 }
 
-.lead-text {
-  font-weight: bold;
-  font-family: Arial, sans-serif;
-  font-size: 1.3rem;
-  color: #333;
-  margin-bottom: 30px;
+/* SIDOMENY / TOPLISTA */
+.top-list {
+   list-style: none;
+   padding: 0;
+}
+.top-list li {
+   display: flex;
+   gap: 15px;
+   align-items: flex-start;
+   margin-bottom: 20px;
 }
 
-/* DIN ANNONS - DESIGN */
+/* ANNONS-BANNER */
 .ad-container {
-  margin: 45px 0;
-  font-family: Arial, sans-serif;
+   margin: 40px 0;
+   width: 100%;
 }
-
 .ad-hint {
-  font-size: 10px;
-  color: #aaa;
-  text-align: center;
-  margin-bottom: 8px;
-  font-weight: bold;
+   font-size: 10px;
+   color: #aaa;
+   text-align: center;
+   font-weight: bold;
+   margin-bottom: 5px;
 }
 
 .unesco-banner {
-  background: linear-gradient(
-    135deg,
-    var(--unesco-blue) 0%,
-    var(--unesco-dark) 100%
-  );
-  color: white;
-  padding: 25px;
-  border-radius: 4px; /* Lite skarpare hörn för tidningslook */
-  cursor: pointer;
-  transition: 0.3s;
-}
-
-.unesco-banner:hover {
-  filter: brightness(1.1);
+   width: 100%;
+   border: none;
+   text-align: left;
+   background: linear-gradient(135deg, var(--unesco-blue), var(--unesco-dark));
+   color: white;
+   padding: 25px;
+   border-radius: 4px;
+   cursor: pointer;
 }
 
 .unesco-content {
-  display: flex;
-  align-items: center;
-  gap: 20px;
+   display: flex;
+   align-items: center;
+   gap: 20px;
 }
 
-.unesco-logo-wrapper {
-  background: white;
-  padding: 8px;
-  border-radius: 4px;
-  display: flex;
-  min-width: 60px;
+.fake-logo {
+   min-width: 60px;
+   height: 60px;
+   background: white;
+   color: var(--unesco-blue);
+   font-weight: 900;
+   border-radius: 4px;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   font-size: 24px;
 }
 
-.unesco-logo {
-  width: 60px;
-}
-
-.unesco-tag {
-  font-size: 0.7rem;
-  background: rgba(255, 255, 255, 0.2);
-  padding: 2px 6px;
-}
-
-.unesco-text h3 {
-  margin: 5px 0;
-  font-size: 1.4rem;
-}
-
-.unesco-arrow {
-  margin-left: auto;
-  font-size: 1.5rem;
-}
-
-/* SIDEBAR */
-.sidebar {
-  border-left: 1px solid var(--border-color);
-  padding-left: 30px;
-  font-family: Arial, sans-serif;
-}
-
-.sidebar-title {
-  font-size: 1rem;
-  border-bottom: 2px solid black;
-  padding-bottom: 5px;
-  margin-bottom: 20px;
-}
-
-.top-list {
-  list-style: none;
-  padding: 0;
-}
-
-.top-list li {
-  display: flex;
-  gap: 15px;
-  margin-bottom: 20px;
-  align-items: flex-start;
-}
-
-.rank {
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: #ddd;
-}
-
-/* MODAL */
+/* MODALER (WCAG & MOBILANPASSADE) */
 .modal-overlay {
-  display: none;
-  position: fixed;
-  z-index: 1000;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.85);
+   display: none;
+   position: fixed;
+   z-index: 1000;
+   top: 0;
+   left: 0;
+   width: 100%;
+   height: 100%;
+   background: rgba(0, 0, 0, 0.85);
+   justify-content: center;
+   align-items: center;
+   padding: 15px;
 }
 
 .modal-window {
-  background: white;
-  margin: 3% auto;
-  width: 90%;
-  max-width: 600px;
-  border-radius: 8px;
-  overflow: hidden;
-  position: relative;
-  font-family: Arial, sans-serif;
+   background: white;
+   width: 100%;
+   max-width: 550px;
+   border-radius: 12px;
+   position: relative;
+   overflow: hidden;
+   font-family: Arial, sans-serif;
+   box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
 }
 
 .modal-header {
-  background: var(--unesco-blue);
-  color: white;
-  padding: 20px;
-  display: flex;
-  align-items: center;
-  gap: 15px;
+   background: var(--unesco-blue);
+   color: white;
+   padding: 30px;
+   display: flex;
+   align-items: center;
+   gap: 20px;
 }
 
-.modal-logo-small {
-  width: 35px;
-  filter: brightness(0) invert(1);
+.fake-logo-small {
+   min-width: 45px;
+   height: 45px;
+   background: white;
+   color: var(--unesco-blue);
+   font-weight: 900;
+   border-radius: 4px;
+   display: flex;
+   align-items: center;
+   justify-content: center;
 }
 
 .modal-body {
-  padding: 30px;
+   padding: 30px; /* Ger luft åt innehållet */
 }
 
 .close-modal {
-  position: absolute;
-  right: 20px;
-  top: 15px;
-  font-size: 30px;
-  cursor: pointer;
-  color: white;
-  z-index: 11;
+   background: transparent;
+   border: none;
+   position: absolute;
+   right: 15px;
+   top: 15px;
+   font-size: 30px;
+   color: white;
+   cursor: pointer;
+   z-index: 10;
 }
 
-.map-placeholder {
-  background: #eee;
-  height: 180px;
-  border-radius: 4px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 20px;
+/* FORMULÄR-KOMPONENTER */
+.form-group {
+   display: flex;
+   flex-direction: column;
+   gap: 5px;
+   margin-bottom: 15px;
 }
 
-.info-card {
-  background: #f0f7ff;
-  padding: 20px;
-  border-left: 5px solid var(--unesco-blue);
-  margin-bottom: 25px;
+.form-group label {
+   font-size: 0.85rem;
+   font-weight: bold;
+   color: var(--text-muted);
 }
 
-.subscription-box {
-  border-top: 1px solid #eee;
-  padding-top: 20px;
-  text-align: center;
-}
-
-.auth-action {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 15px;
-}
-
-#phoneInput {
-  padding: 12px;
-  border: 1px solid #ddd;
+.form-group input {
+   width: 100%;
+   padding: 12px;
+   border: 1px solid #ccc;
+   border-radius: 6px;
+   font-size: 1rem;
 }
 
 .btn-bankid {
-  background: white;
-  color: #003087;
-  border: 2px solid #003087;
-  padding: 12px;
-  font-weight: bold;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
+   background: white;
+   color: var(--bankid-blue);
+   border: 2px solid var(--bankid-blue);
+   width: 100%;
+   padding: 14px;
+   border-radius: 8px;
+   font-weight: bold;
+   cursor: pointer;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   gap: 10px;
+   margin-top: 10px;
 }
 
-.btn-secondary {
-  background: #333;
-  color: white;
-  border: none;
-  padding: 12px 25px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: bold;
+.btn-bankid img {
+   width: 24px;
+}
+
+/* PREMIUM-KOMPONENTER (FIXAR DET HOPTRYCKTA) */
+.info-card {
+   border-left: 6px solid var(--unesco-dark);
+   padding: 20px;
+   background: var(--bg-light);
+   margin-bottom: 25px;
+}
+
+.chatbot-container {
+   background: white;
+   border: 1px solid #ddd;
+   border-radius: 12px;
+   padding: 20px;
+   margin-bottom: 25px;
+}
+
+.chat-box {
+   background: var(--bg-light);
+   padding: 15px;
+   height: 150px;
+   overflow-y: auto;
+   margin: 15px 0;
+   border-radius: 8px;
+   border: 1px solid #eee;
+   font-size: 0.9rem;
+}
+
+.chat-input-area {
+   display: flex;
+   gap: 10px;
+}
+.chat-input-area input {
+   flex: 1;
+   padding: 10px;
+   border: 1px solid #ccc;
+   border-radius: 6px;
+}
+.chat-input-area button {
+   background: var(--unesco-blue);
+   color: white;
+   border: none;
+   padding: 0 20px;
+   border-radius: 6px;
+   cursor: pointer;
+}
+
+.btn-cancel {
+   background: white;
+   color: #cc0000;
+   border: 1.5px solid #cc0000;
+   width: 100%;
+   padding: 12px;
+   border-radius: 6px;
+   cursor: pointer;
+   font-weight: bold;
+}
+
+.footer-link {
+   text-align: center;
+   margin-top: 20px;
+   font-size: 0.9rem;
 }
 
 /* RESPONSIVITET */
-@media (max-width: 900px) {
-  .news-main {
-    grid-template-columns: 1fr;
-  }
-  .sidebar {
-    border-left: none;
-    padding-left: 0;
-    border-top: 1px solid #eee;
-    padding-top: 30px;
-  }
-  .logo {
-    font-size: 2rem;
-  }
+@media (max-width: 850px) {
+   .news-main {
+      grid-template-columns: 1fr;
+      padding: 20px;
+   }
+   .logo {
+      font-size: 1.8rem;
+   }
+   .article-title {
+      font-size: 2rem;
+   }
+   .unesco-content {
+      flex-direction: column;
+      align-items: flex-start;
+   }
+   .fake-logo {
+      display: none;
+   }
+   .modal-window {
+      width: 95%;
+   }
+   .modal-header,
+   .modal-body {
+      padding: 20px;
+   }
+}
+
+.visually-hidden {
+   position: absolute;
+   width: 1px;
+   height: 1px;
+   padding: 0;
+   margin: -1px;
+   overflow: hidden;
+   clip: rect(0, 0, 0, 0);
+   border: 0;
 }
