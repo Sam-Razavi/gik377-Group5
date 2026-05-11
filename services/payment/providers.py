@@ -5,12 +5,12 @@ Modul: Betaltjänst – providers
 
 Providers:
 - StripeProvider   : Stripe i testläge, stöder Visa och Mastercard
-- InvoiceProvider  : Simulerad fakturalösning (mock, ingen extern API)
-- MockProvider     : Enkel in-memory fallback om Stripe saknas
+- InvoiceProvider  : Simulerad fakturalösning (faktura, ingen extern API)
 
-Välj kortprovider via PAYMENT_PROVIDER i .env:
-    PAYMENT_PROVIDER=stripe  (standard)
-    PAYMENT_PROVIDER=mock
+Kräver i .env:
+    STRIPE_SECRET_KEY=sk_test_...
+    STRIPE_PUBLISHABLE_KEY=pk_test_...
+    PAYMENT_PROVIDER=stripe
 """
 
 import os
@@ -42,6 +42,9 @@ class StripeProvider:
         # Importerar Stripe-biblioteket och läser API-nyckeln från .env
         import stripe as _stripe
         self._stripe = _stripe
+
+        # Lås API-versionen till en stabil version som stöder payment_intent på Invoice
+        self._stripe.api_version = "2024-11-20.acacia"
 
         # Använd .get() — kraschar inte med KeyError om .env saknas
         self._stripe.api_key = os.environ.get("STRIPE_SECRET_KEY", "")
@@ -85,12 +88,38 @@ class StripeProvider:
             "plan_id": plan_id,
             "status": subscription.status,
             "provider": "stripe",
-            # client_secret används av frontend för att visa kortformulär
             "client_secret": (
                 subscription.latest_invoice.payment_intent.client_secret
                 if subscription.latest_invoice and subscription.latest_invoice.payment_intent
                 else None
             ),
+        }
+
+    def create_checkout_session(self, price_id: str, success_url: str, cancel_url: str) -> Dict:
+        session = self._stripe.checkout.Session.create(
+            payment_method_types=["card"],
+            line_items=[{"price": price_id, "quantity": 1}],
+            mode="subscription",
+            success_url=success_url,
+            cancel_url=cancel_url,
+        )
+        return {"id": session.id, "url": session.url, "provider": "stripe"}
+
+    def create_payment_intent(self, price_id: str, email: str = "") -> Dict:
+        customer = self._stripe.Customer.create(email=email or None)
+        subscription = self._stripe.Subscription.create(
+            customer=customer.id,
+            items=[{"price": price_id}],
+            payment_behavior="default_incomplete",
+            expand=["latest_invoice.payment_intent"],
+        )
+        pi = subscription.latest_invoice.payment_intent
+        if not pi:
+            raise ValueError("Stripe returnerade inget payment_intent — kontrollera att price_id är korrekt.")
+        return {
+            "client_secret":   pi.client_secret,
+            "subscription_id": subscription.id,
+            "provider":        "stripe",
         }
 
     def cancel_subscription(self, subscription_id: str) -> bool:
@@ -172,64 +201,12 @@ class InvoiceProvider:
 
 
 # ---------------------------------------------------------------------------
-# MockProvider — enkel fallback om Stripe saknas
-# ---------------------------------------------------------------------------
-
-class MockProvider:
-    """Enkel in-memory mock för tester utan extern tjänst."""
-
-    def __init__(self):
-        # In-memory lagring — ingen extern tjänst krävs
-        self._store: Dict[str, Dict] = {}
-        logger.info("PaymentProvider: Mock (in-memory).")
-
-    def create_subscription(self, user_id: str, plan_id: str) -> Dict:
-        # Skapar en prenumeration direkt i minnet
-        sub_id = str(uuid.uuid4())
-        record = {
-            "id": sub_id,
-            "user_id": user_id,
-            "plan_id": plan_id,
-            "status": "active",
-            "provider": "mock",
-        }
-        self._store[sub_id] = record
-        return record
-
-    def cancel_subscription(self, subscription_id: str) -> bool:
-        # Sätter status till "cancelled" om prenumerationen finns
-        rec = self._store.get(subscription_id)
-        if not rec:
-            return False
-        rec["status"] = "cancelled"
-        return True
-
-    def get_subscription(self, subscription_id: str) -> Optional[Dict]:
-        # Returnerar prenumerationen eller None
-        return self._store.get(subscription_id)
-
-
-# ---------------------------------------------------------------------------
 # Factory
 # ---------------------------------------------------------------------------
 
-def build_provider():
-    """Bygg kortprovider baserat på PAYMENT_PROVIDER env-variabel.
-
-    Returnerar StripeProvider om konfigurerad, annars MockProvider.
-    InvoiceProvider skapas alltid separat i PaymentService.
-    """
-    name = os.environ.get("PAYMENT_PROVIDER", "stripe").lower()
-
-    if name == "stripe":
-        try:
-            # Försöker starta Stripe — faller tillbaka till mock om nyckeln saknas
-            return StripeProvider()
-        except Exception as e:
-            logger.warning("Stripe kunde inte initieras, faller tillbaka till mock: %s", e)
-
-    logger.info("Använder mock-betalningsprovider.")
-    return MockProvider()
+def build_provider() -> StripeProvider:
+    """Bygg StripeProvider. Kraschar med tydligt fel om nyckeln saknas."""
+    return StripeProvider()
 
 
-__all__ = ["StripeProvider", "InvoiceProvider", "MockProvider", "build_provider"]
+__all__ = ["StripeProvider", "InvoiceProvider", "build_provider"]

@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Betalning</title>
+  <script src="https://js.stripe.com/v3/"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #f0f4f8;
+      color: #1a202c;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #1d3571;
+      color: #fff;
+      padding: 20px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    header h1 { font-size: 1.3rem; font-weight: 700; letter-spacing: .03em; }
+    header p  { font-size: 13px; color: #a0aec0; margin-top: 3px; }
+
+    main {
+      max-width: 520px;
+      margin: 36px auto;
+      padding: 0 16px 60px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 1px 6px rgba(0,0,0,.07);
+      padding: 24px;
+    }
+
+    .card h2 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #2d3748;
+      margin-bottom: 18px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #718096;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      margin-bottom: 5px;
+      margin-top: 12px;
+    }
+
+    label:first-of-type { margin-top: 0; }
+
+    input, select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      font: inherit;
+      font-size: 14px;
+      background: #fafafa;
+      transition: border-color .15s;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: #667eea;
+      background: #fff;
+    }
+
+    #card-element {
+      padding: 11px 12px;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      background: #fafafa;
+      margin-top: 5px;
+      min-height: 42px;
+    }
+
+    .card-logos {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 12px 0 4px;
+    }
+
+    .card-logos span { font-size: 12px; color: #a0aec0; }
+
+    button {
+      font: inherit;
+      cursor: pointer;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      transition: opacity .15s, transform .1s;
+    }
+
+    button:active { transform: scale(.98); }
+
+    .btn-primary {
+      width: 100%;
+      padding: 13px;
+      background: #1d3571;
+      color: #fff;
+      font-size: 15px;
+      margin-top: 14px;
+    }
+
+    .btn-primary:hover    { opacity: .88; }
+    .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+
+    .btn-danger {
+      width: 100%;
+      padding: 11px;
+      background: #fff;
+      color: #c53030;
+      border: 1px solid #fc8181;
+      font-size: 14px;
+      margin-top: 8px;
+    }
+
+    .btn-danger:hover { background: #fff5f5; }
+
+    .result {
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 12px;
+      background: #f7fafc;
+      border: 1px solid #e2e8f0;
+      white-space: pre-wrap;
+      display: none;
+    }
+
+    .result.ok  { background: #e8f5e9; border-color: #c3e6cb; }
+    .result.err { background: #fff5f5; border-color: #fc8181; color: #c53030; }
+
+    .field-err {
+      color: #c53030;
+      font-size: 12px;
+      margin-top: 4px;
+      min-height: 16px;
+    }
+
+    .success-box {
+      display: none;
+      text-align: center;
+      padding: 20px;
+      color: #276749;
+      font-weight: 600;
+      font-size: 15px;
+    }
+
+    .plan-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 14px;
+    }
+
+    .plan-row:last-child { border: none; }
+    .plan-price { font-weight: 700; color: #1d3571; font-size: 16px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Betalning</h1>
+    <p>Kopplad till backend på localhost:5002</p>
+  </div>
+</header>
+
+<main>
+
+  <!-- ── Kortbetalning med Stripe Elements ── -->
+  <div class="card">
+    <h2>Betala med kort</h2>
+
+    <div class="plan-row">
+      <span>Prenumeration Standard</span>
+      <span class="plan-price">39 kr/mån</span>
+    </div>
+    <div class="plan-row" style="font-size:12px;color:#718096">
+      <span>Pris-ID</span>
+      <span id="display-price-id" style="font-family:monospace">—</span>
+    </div>
+
+    <div class="card-logos">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Visa_Inc._logo.svg/200px-Visa_Inc._logo.svg.png"
+           alt="Visa" height="20">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Mastercard-logo.svg/200px-Mastercard-logo.svg.png"
+           alt="Mastercard" height="24">
+      <span>Säker betalning via Stripe</span>
+    </div>
+
+    <form id="payment-form">
+      <label>E-postadress</label>
+      <input id="pay-email" type="email" placeholder="din@epost.se" required />
+
+      <label>Namn på kortet</label>
+      <input id="pay-name" type="text" placeholder="Anna Andersson" required />
+
+      <label>Kortuppgifter</label>
+      <div id="card-element"></div>
+      <div class="field-err" id="card-errors"></div>
+
+      <button type="submit" class="btn-primary" id="btn-pay">
+        <span id="pay-text">Betala — 39 kr/mån</span>
+        <span id="pay-spinner" style="display:none">⏳ Behandlar...</span>
+      </button>
+    </form>
+
+    <div class="success-box" id="pay-success">
+      ✅ Betalningen lyckades! Välkommen.
+    </div>
+  </div>
+
+  <!-- ── Hämta / avbryt prenumeration ── -->
+  <div class="card">
+    <h2>Hantera prenumeration</h2>
+
+    <label>Prenumerations-ID</label>
+    <input id="sub-id" placeholder="Klistra in ID från skapad prenumeration" />
+
+    <label>Metod</label>
+    <select id="get-method">
+      <option value="card">card</option>
+      <option value="invoice">invoice</option>
+    </select>
+
+    <button class="btn-primary" onclick="hamtaPrenumeration()">Hämta status</button>
+    <button class="btn-danger" onclick="avbrytPrenumeration()">Avbryt prenumeration</button>
+    <div class="result" id="r-sub"></div>
+  </div>
+
+</main>
+
+<script>
+  const BASE     = 'http://localhost:5002';
+  const PRICE_ID = 'price_1TRqWVHYkj0fomnSAd10SVLn';
+
+  let stripe, cardElement;
+
+  // ── Init Stripe ────────────────────────────────────────────────────────────
+  async function initStripe() {
+    document.getElementById('display-price-id').textContent = PRICE_ID;
+
+    let cfg;
+    try {
+      cfg = await fetch(BASE + '/payment/config').then(r => r.json());
+    } catch (e) {
+      visaFel('card-errors', 'Kunde inte ansluta till servern (localhost:5002).');
+      return;
+    }
+
+    if (cfg.error || !cfg.publishable_key) {
+      visaFel('card-errors', cfg.error || 'STRIPE_PUBLISHABLE_KEY saknas i .env');
+      return;
+    }
+
+    stripe      = Stripe(cfg.publishable_key);
+    cardElement = stripe.elements().create('card', {
+      style: {
+        base: {
+          fontSize: '15px', color: '#2d3748',
+          fontFamily: "'Segoe UI', sans-serif",
+          '::placeholder': { color: '#a0aec0' }
+        },
+        invalid: { color: '#c53030' }
+      }
+    });
+    cardElement.mount('#card-element');
+    cardElement.on('change', e => {
+      document.getElementById('card-errors').textContent = e.error ? e.error.message : '';
+    });
+  }
+
+  // ── Kortbetalning ──────────────────────────────────────────────────────────
+  document.getElementById('payment-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!stripe || !cardElement) return;
+
+    const btn     = document.getElementById('btn-pay');
+    const payText = document.getElementById('pay-text');
+    const spinner = document.getElementById('pay-spinner');
+    const errEl   = document.getElementById('card-errors');
+
+    btn.disabled = true;
+    payText.style.display = 'none';
+    spinner.style.display = 'inline';
+    errEl.textContent = '';
+
+    try {
+      const intent = await fetch(BASE + '/payment/intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          price_id: PRICE_ID,
+          email:    document.getElementById('pay-email').value
+        })
+      }).then(r => r.json());
+
+      if (intent.error) { errEl.textContent = intent.error; return; }
+
+      const { error, paymentIntent } = await stripe.confirmCardPayment(
+        intent.client_secret,
+        { payment_method: {
+            card:            cardElement,
+            billing_details: { name: document.getElementById('pay-name').value }
+        }}
+      );
+
+      if (error) {
+        errEl.textContent = error.message;
+      } else if (paymentIntent.status === 'succeeded') {
+        document.getElementById('payment-form').style.display = 'none';
+        document.getElementById('pay-success').style.display  = 'block';
+      }
+    } catch (err) {
+      errEl.textContent = 'Anslutningsfel — kontrollera att servern körs.';
+    } finally {
+      btn.disabled = false;
+      payText.style.display = 'inline';
+      spinner.style.display = 'none';
+    }
+  });
+
+  // ── Hämta prenumeration ────────────────────────────────────────────────────
+  async function hamtaPrenumeration() {
+    const id     = document.getElementById('sub-id').value.trim();
+    const method = document.getElementById('get-method').value;
+    if (!id) return;
+    const r = await fetch(`${BASE}/payment/subscription/${id}?method=${method}`);
+    visa('r-sub', await r.json(), r.ok);
+  }
+
+  // ── Avbryt prenumeration ───────────────────────────────────────────────────
+  async function avbrytPrenumeration() {
+    const res = await anropa('/payment/cancel', {
+      subscription_id: document.getElementById('sub-id').value.trim(),
+      method:          document.getElementById('get-method').value
+    });
+    visa('r-sub', res);
+  }
+
+  // ── Hjälpfunktioner ────────────────────────────────────────────────────────
+  async function anropa(path, body) {
+    try {
+      const r = await fetch(BASE + path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      return await r.json();
+    } catch (e) {
+      return { error: 'Anslutningsfel — kontrollera att servern körs.' };
+    }
+  }
+
+  function visa(id, data, ok) {
+    const el = document.getElementById(id);
+    el.style.display = 'block';
+    el.textContent   = JSON.stringify(data, null, 2);
+    el.className     = 'result ' + (ok === false || data?.error ? 'err' : 'ok');
+  }
+
+  function visaFel(id, msg) {
+    document.getElementById(id).textContent = msg;
+  }
+
+  initStripe();
+</script>
+
+</body>
+</html>
