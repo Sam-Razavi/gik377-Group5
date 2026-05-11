@@ -1,0 +1,108 @@
+─────────────────────────────────────────────────────────────
+KODÖVERSIKT — Översättning + Betalning
+Ansvarig: Nina Bentmosse
+─────────────────────────────────────────────────────────────
+
+
+══════════════════════════════════════════════════════════════
+DEL 1 — ÖVERSÄTTNING (translation/)
+══════════════════════════════════════════════════════════════
+
+1. BACKEND — mappen services/translation/
+
+    translation/
+      __init__.py     → gör mappen till ett Python-paket
+      providers.py    → MockProvider + GoogleTranslateProvider
+      service.py      → TranslationService med tre metoder:
+                          translate(text, target_language)
+                          detect_language(text)
+                          supported_languages()
+      credentials/    → Google OAuth-filer (client_secret.json)
+
+
+2. FLASK-SERVER — services/translation/app.py
+   Körs på port 5001. Tre rutter:
+
+    GET  /translate/languages   → returnerar lista på alla stödda språk
+    POST /translate             → tar emot text + målspråk, returnerar översättning
+    GET  /                      → visar index.html
+
+
+3. FRONTEND — JavaScript i services/translation/index.html
+   Två funktioner:
+
+    laddaSprak()    → hämtar /translate/languages och fyller dropdown med språk
+    oversatt()      → skickar text till /translate och visar översättningen
+
+
+ÅTERANVÄNDNING 
+    ✓ Kopiera translation/-mappen
+    ✓ Kopiera de tre rutterna från app.py
+    ✓ Kopiera de två JS-funktionerna + HTML-formuläret
+
+
+══════════════════════════════════════════════════════════════
+DEL 2 — BETALNING (payment/)
+══════════════════════════════════════════════════════════════
+
+1. BACKEND — mappen services/payment/
+
+    payment/
+      __init__.py     → gör mappen till ett Python-paket
+      providers.py    → StripeProvider + InvoiceProvider
+      service.py      → PaymentService med metoder:
+                          create_payment_intent(price_id, email)
+                          create_checkout_session(price_id, success_url, cancel_url)
+                          create_subscription(user_id, plan_id, method)
+                          cancel_subscription(subscription_id, method)
+                          get_subscription(subscription_id, method)
+      .env            → STRIPE_PUBLISHABLE_KEY + STRIPE_SECRET_KEY
+
+
+2. FLASK-SERVER — services/payment/app.py
+   Körs på port 5002. Rutter:
+
+    GET  /payment/config                → returnerar Stripe publishable key till frontend
+    POST /payment/intent                → skapar PaymentIntent, returnerar client_secret
+    POST /payment/checkout              → skapar Checkout Session med betalningslänk
+    POST /payment/create                → skapar prenumeration (card eller invoice)
+    GET  /payment/subscription/<id>     → hämtar prenumerationsstatus
+    POST /payment/cancel                → avbryter en prenumeration
+    GET  /betalning/lyckades            → sida efter lyckad betalning
+    GET  /betalning/avbruten            → sida om användaren avbröt
+
+
+3. FRONTEND — services/payment/index.html
+   Stripe Elements — inbäddat kortformulär (Visa & Mastercard).
+   Flöde:
+
+    1. initStripe()        → hämtar publishable key, startar Stripe.js
+    2. Formulär            → användaren fyller e-post, namn och kortuppgifter
+    3. /payment/intent     → backend skapar prenumeration, returnerar client_secret
+    4. confirmCardPayment  → Stripe verifierar kortet i webbläsaren
+    5. Redirect            → /betalning/lyckades eller /betalning/avbruten
+
+
+ÅTERANVÄNDNING — vill du kopiera till ett nytt projekt?
+    ✓ Kopiera payment/-mappen
+    ✓ Kopiera rutterna från app.py
+    ✓ Kopiera initStripe() + betalningsformuläret från index.html
+    ✓ Skapa .env med dina Stripe-nycklar
+
+
+══════════════════════════════════════════════════════════════
+SAMBAND MELLAN DE TVÅ DELARNA
+══════════════════════════════════════════════════════════════
+
+    services/translation/app.py  →  port 5001  (översättning + betalning i en server)
+    services/payment/app.py      →  port 5002  (bara betalning, fristående)
+
+    translation/app.py importerar PaymentService och har betalningsrutterna inbyggda.
+    payment/app.py är fristående — kör bara betalning, utan översättning.
+    Båda delar samma logik via payment/service.py och payment/providers.py.
+
+ 
+ 
+ Godkänt Visacard:  4242 4242 4242 4242
+Godkänt Mastercard: 5555 5555 5555 4444
+Utgångsdatum: 12/34 CVC: 123
