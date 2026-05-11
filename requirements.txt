@@ -18,3 +18,7 @@ google-auth-oauthlib
 pyotp
 pytest
 pytest-mock
+stripe
+flask
+flask-cors
+aiofiles
