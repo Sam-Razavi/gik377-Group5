@@ -1,8 +1,8 @@
 import os
 from dotenv import load_dotenv
 
-# Ladda .env från notification-mappen
-load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
+# Ladda .env från projektets rot
+load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
 
 
 def _require_env(key):
