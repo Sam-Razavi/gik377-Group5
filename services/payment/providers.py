@@ -204,9 +204,21 @@ class InvoiceProvider:
 # Factory
 # ---------------------------------------------------------------------------
 
-def build_provider() -> StripeProvider:
-    """Bygg StripeProvider. Kraschar med tydligt fel om nyckeln saknas."""
-    return StripeProvider()
+def build_provider():
+    key = os.environ.get("STRIPE_SECRET_KEY", "")
+    if key:
+        try:
+            return StripeProvider()
+        except (ValueError, ImportError) as e:
+            logger.warning(
+                "StripeProvider kunde inte initieras: %s. "
+                "Faller tillbaka till InvoiceProvider.",
+                e,
+            )
+    logger.info(
+        "Payment provider: InvoiceProvider (mock - satt STRIPE_SECRET_KEY for Stripe)"
+    )
+    return InvoiceProvider()
 
 
 __all__ = ["StripeProvider", "InvoiceProvider", "build_provider"]

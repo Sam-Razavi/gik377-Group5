@@ -4,7 +4,9 @@
       <meta charset="UTF-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       <title>Dagstidningen - Senaste Nytt</title>
-      <link rel="stylesheet" href="../static/css/style.css" />
+      <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+      <link rel="stylesheet" href="/static/css/style.css" />
+      <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
    </head>
    <body>
       <div class="top-accent"></div>
@@ -31,7 +33,7 @@
                   <span class="read-time">3 min läsning</span>
                </div>
                <h1 class="article-title">
-                  Nytt industriavtal klart – blir vägledande
+                  Nytt industriavtal klart - blir vägledande
                </h1>
                <p class="lead-text">
                   Det nya industriavtalet är nu på plats efter intensiva
@@ -50,7 +52,7 @@
                            <h3>Upptäck historien nära dig</h3>
                            <p>Utforska världsarv i realtid med vår interaktiva karta.</p>
                         </div>
-                        <div class="unesco-arrow" aria-hidden="true">→</div>
+                        <div class="unesco-arrow" aria-hidden="true">-&gt;</div>
                      </div>
                   </button>
                </div>
@@ -87,24 +89,41 @@
             </div>
 
             <div class="modal-body">
-               <div class="info-card">
-                  <h3><span aria-hidden="true">📍</span> Upptäck platsen</h3>
-                  <p>Du är nära <strong>Örlogsstaden Karlskrona</strong>. Som medlem får du tillgång till fördjupad historik och AI-guide.</p>
+               <div class="info-card" id="siteSummary">
+                  <h3>Upptäck platsen</h3>
+                  <p>Hämtar världsarv nära dig...</p>
                </div>
 
                <div class="map-placeholder">
-                  <div class="map-header"><span aria-hidden="true">🗺️</span> Interaktiv karta</div>
-                  <div class="map-view">
+                  <div class="map-header">Interaktiv karta</div>
+                  <div class="map-view" id="map-view">
                      <p class="map-hint">Kartvy förbereds...</p>
                   </div>
                </div>
 
+               <div class="site-list" id="siteList" aria-live="polite"></div>
+
+               <div class="site-detail" id="siteDetail" hidden>
+                  <div class="form-group">
+                     <label for="languageSelect">Språk</label>
+                     <select id="languageSelect">
+                        <option value="">Original</option>
+                        <option value="sv">Svenska</option>
+                        <option value="en">English</option>
+                        <option value="ja">日本語</option>
+                        <option value="ar">العربية</option>
+                     </select>
+                  </div>
+                  <h4 id="detailTitle"></h4>
+                  <p id="detailDescription"></p>
+               </div>
+
                <div class="subscription-box">
                   <h4>Bli Premium-prenumerant</h4>
-                  <div class="subscription-form">
+                  <form class="subscription-form" id="subscribeForm">
                      <div class="form-group">
                         <label for="phoneInput">Mobilnummer</label>
-                        <input type="tel" id="phoneInput" placeholder="070-000 00 00" required />
+                        <input type="tel" id="phoneInput" placeholder="+46700000000" />
                      </div>
                      <div class="form-group">
                         <label for="nameInput">Namn</label>
@@ -112,14 +131,23 @@
                      </div>
                      <div class="form-group">
                         <label for="emailInput">E-post</label>
-                        <input type="email" id="emailInput" placeholder="namn@exempel.se" required />
+                        <input type="email" id="emailInput" placeholder="namn@exempel.se" />
+                     </div>
+                     <div class="form-group">
+                        <label for="paymentMethod">Betalning</label>
+                        <select id="paymentMethod">
+                           <option value="invoice">Faktura demo</option>
+                           <option value="card">Kort</option>
+                        </select>
                      </div>
 
-                     <button class="btn-bankid" id="bankidBtn">
+                     <button class="btn-bankid" id="bankidBtn" type="button">
                         <img src="https://upload.wikimedia.org/wikipedia/commons/4/4e/BankID_logo.svg" alt="" aria-hidden="true" />
                         Bekräfta med BankID
                      </button>
-                  </div>
+                     <button class="btn-primary" type="submit">Aktivera prenumeration</button>
+                  </form>
+                  <div class="form-status" id="widgetStatus" aria-live="polite"></div>
                   <div class="footer-link">
                      Redan medlem? <a href="#" id="toMemberView">Mina Sidor / Logga in</a>
                   </div>
@@ -135,14 +163,37 @@
                <div class="fake-logo-small" aria-hidden="true">AV</div>
                <div>
                   <h2 id="memberTitle" style="margin: 0">Mina Sidor</h2>
-                  <p style="margin: 5px 0 0; font-size: 0.9rem; opacity: 0.9">Inloggad som Premium-medlem</p>
+                  <p style="margin: 5px 0 0; font-size: 0.9rem; opacity: 0.9">Premium-medlem</p>
                </div>
             </div>
 
             <div class="modal-body">
+               <form class="login-form" id="loginForm">
+                  <h4>Logga in</h4>
+                  <div class="form-group">
+                     <label for="loginEmail">E-post</label>
+                     <input type="email" id="loginEmail" placeholder="namn@exempel.se" required />
+                  </div>
+                  <div class="form-group">
+                     <label for="loginPassword">Lösenord</label>
+                     <input type="password" id="loginPassword" required />
+                  </div>
+                  <button class="btn-primary" type="submit">Logga in</button>
+               </form>
+
+               <form class="login-form" id="twoFactorForm" hidden>
+                  <h4>Tvåfaktorskod</h4>
+                  <div class="form-group">
+                     <label for="twoFactorCode">Kod</label>
+                     <input type="text" id="twoFactorCode" inputmode="numeric" required />
+                  </div>
+                  <button class="btn-primary" type="submit">Verifiera</button>
+               </form>
+               <div class="form-status" id="loginStatus" aria-live="polite"></div>
+
                <div class="info-card">
-                  <h3><span aria-hidden="true">📍</span> Världsarv i närheten</h3>
-                  <p>Du befinner dig just nu nära <strong>Örlogsstaden Karlskrona</strong>.</p>
+                  <h3>Världsarv i närheten</h3>
+                  <p id="memberSiteText">Hämtar närmaste världsarv...</p>
                   <div class="checkbox-group">
                      <label class="custom-checkbox">
                         <input type="checkbox" id="visitedCheck" />
@@ -152,16 +203,16 @@
                </div>
 
                <div class="map-placeholder">
-                  <div class="map-header"><span aria-hidden="true">🗺️</span> Din Premium-karta</div>
-                  <div class="map-view premium-map">
+                  <div class="map-header">Din Premium-karta</div>
+                  <div class="map-view premium-map" id="member-map-view">
                      <p class="map-hint">Fullständig karta laddas...</p>
                   </div>
                </div>
 
                <div class="chatbot-container">
-                  <h4><span class="sparkle" aria-hidden="true">✨</span> AI-Guide (Premium)</h4>
+                  <h4>AI-Guide (Premium)</h4>
                   <div class="chat-box" id="chatOutput" aria-live="polite">
-                     Välkommen! Jag är din personliga guide till Örlogsstaden Karlskrona. Vad vill du veta mer om platsen?
+                     Välkommen! Ställ en fråga om världsarven nära dig.
                   </div>
                   <div class="chat-input-area">
                      <input type="text" placeholder="Ställ en fråga..." id="chatInput" />
@@ -170,12 +221,12 @@
                </div>
 
                <div class="account-management">
-                  <button class="btn-cancel" onclick="confirmCancel()">Avsluta prenumeration</button>
+                  <button class="btn-cancel" id="cancelSubscriptionBtn" type="button">Avsluta prenumeration</button>
                </div>
             </div>
          </div>
       </div>
 
-      <script src="../static/js/script.js"></script>
+      <script src="/static/js/script.js"></script>
    </body>
 </html>

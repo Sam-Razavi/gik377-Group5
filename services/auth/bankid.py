@@ -23,6 +23,14 @@ def create_ssl_context() -> ssl.SSLContext:
 
 
 async def initiate_bankid_auth(personal_number: str | None = None) -> dict:
+    if settings.bankid_mock_mode:
+        return {
+            "orderRef": "mock-order-ref-12345",
+            "autoStartToken": "mock-autostart-token",
+            "qrStartToken": "mock-qr-start-token",
+            "qrStartSecret": "mock-qr-start-secret",
+        }
+
     url = f"{settings.bankid_base_url}/rp/v6.0/auth"
 
     payload = {
@@ -60,6 +68,19 @@ async def initiate_bankid_auth(personal_number: str | None = None) -> dict:
 
 
 async def collect_bankid_status(order_ref: str) -> dict:
+    if settings.bankid_mock_mode:
+        return {
+            "status": "complete",
+            "hintCode": None,
+            "orderRef": order_ref,
+            "completionData": {
+                "user": {
+                    "personalNumber": "190000000000",
+                    "name": "Test Testsson",
+                }
+            },
+        }
+
     url = f"{settings.bankid_base_url}/rp/v6.0/collect"
 
     payload = {

@@ -3,8 +3,10 @@
 # Hämtar världsarvsdata från UNESCO API och hanterar kartfunktionalitet
 
 import os
-import requests
+import time
+
 import anthropic
+import requests
 from math import radians, sin, cos, sqrt, atan2
 
 BASE_URL = "https://data.unesco.org/api/explore/v2.1/catalog/datasets/whc001/records"
@@ -12,6 +14,9 @@ BASE_URL = "https://data.unesco.org/api/explore/v2.1/catalog/datasets/whc001/rec
 BORLANGE_LAT = 60.4858
 BORLANGE_LON = 15.4358
 DEFAULT_RADIUS_KM = 150
+CACHE_TTL_SECONDS = 3600
+
+_sites_cache = {"data": [], "fetched_at": 0}
 
 
 def get_sites(limit=100, offset=0):
@@ -35,18 +40,29 @@ def _haversine_km(lat1, lon1, lat2, lon2):
     return R * 2 * atan2(sqrt(a), sqrt(1 - a))
 
 
-def get_sites_near(lat=BORLANGE_LAT, lon=BORLANGE_LON, radius_km=DEFAULT_RADIUS_KM):
-    """Returnerar världsarvssajter inom en given radie (km) från en koordinat."""
-    all_sites = []
+def _get_all_sites_cached():
+    if time.time() - _sites_cache["fetched_at"] < CACHE_TTL_SECONDS:
+        return _sites_cache["data"]
+
+    sites = []
     offset = 0
     while True:
         batch = get_sites(limit=100, offset=offset)
         if not batch:
             break
-        all_sites.extend(batch)
+        sites.extend(batch)
         offset += 100
         if len(batch) < 100:
             break
+
+    _sites_cache["data"] = sites
+    _sites_cache["fetched_at"] = time.time()
+    return sites
+
+
+def get_sites_near(lat=BORLANGE_LAT, lon=BORLANGE_LON, radius_km=DEFAULT_RADIUS_KM):
+    """Returnerar världsarvssajter inom en given radie (km) från en koordinat."""
+    all_sites = _get_all_sites_cached()
 
     nearby = []
     for site in all_sites:
@@ -67,7 +83,14 @@ def chat_about_unesco(message: str, sites: list) -> str:
 
     Använder prompt caching för att slippa skicka platsdata varje gång.
     """
-    client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        return (
+            "AI-tjansten ar inte tillganglig. "
+            "Kontakta administratoren for att konfigurera ANTHROPIC_API_KEY."
+        )
+
+    client = anthropic.Anthropic(api_key=api_key)
 
     sites_text = "\n".join(
         f"- {s.get('name_en', 'Okänt namn')} ({s.get('category', '?')}), "
