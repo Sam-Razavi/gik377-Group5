@@ -5,6 +5,7 @@ const openBtn = document.getElementById("openAdBtn");
 const closeAdBtn = document.getElementById("closeAdBtn");
 const closeMemberBtn = document.getElementById("closeMemberBtn");
 const toMemberLink = document.getElementById("toMemberView");
+const bankidBtn = document.getElementById("bankidBtn");
 
 let lastFocusedElement;
 
@@ -21,18 +22,23 @@ function closeModal(modal) {
    if (lastFocusedElement) lastFocusedElement.focus();
 }
 
-// Öppna första modalen (Registrering)
 openBtn.onclick = () => openModal(visitorModal);
-
-// Stäng-knappar
 closeAdBtn.onclick = () => closeModal(visitorModal);
 closeMemberBtn.onclick = () => closeModal(memberModal);
 
-// Växla till inloggad vy
 toMemberLink.onclick = (e) => {
    e.preventDefault();
    visitorModal.style.display = "none";
    openModal(memberModal);
+};
+
+// BankID demo-effekt
+bankidBtn.onclick = () => {
+    bankidBtn.innerText = "Öppnar BankID...";
+    setTimeout(() => {
+        alert("Anrop skickas till backend för legitimering.");
+        bankidBtn.innerHTML = `<img src="https://upload.wikimedia.org/wikipedia/commons/4/4e/BankID_logo.svg" style="width:24px"> Bekräfta med BankID`;
+    }, 1500);
 };
 
 // CHATT-FUNKTIONALITET
@@ -46,14 +52,12 @@ document.getElementById("sendChat").onclick = () => {
    }
 };
 
-// PRENUMERATION
 function confirmCancel() {
    if (confirm("Är du säker på att du vill avsluta din prenumeration?")) {
       alert("Prenumeration avslutad.");
    }
 }
 
-// STÄNG VID KLICK UTANFÖR ELLER ESC
 window.onclick = (e) => {
    if (e.target.classList.contains("modal-overlay")) {
       closeModal(visitorModal);

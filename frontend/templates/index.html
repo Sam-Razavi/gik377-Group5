@@ -4,7 +4,6 @@
       <meta charset="UTF-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       <title>Dagstidningen - Senaste Nytt</title>
-      <!-- Korrekt länkning till CSS utifrån din filstruktur -->
       <link rel="stylesheet" href="../static/css/style.css" />
    </head>
    <body>
@@ -39,34 +38,24 @@
                   förhandlingar under natten.
                </p>
 
-               <!-- Knapp för att öppna den första modalen -->
                <div class="ad-container">
                   <p class="ad-hint">ANNONS: VÄRLDSARVSTJÄNSTEN</p>
-                  <button
-                     class="unesco-banner"
-                     id="openAdBtn"
-                     aria-haspopup="dialog">
+                  <button class="unesco-banner" id="openAdBtn" aria-haspopup="dialog">
                      <div class="unesco-content">
                         <div class="unesco-logo-wrapper">
                            <div class="fake-logo" aria-hidden="true">AV</div>
                         </div>
                         <div class="unesco-text">
-                           <span class="unesco-tag"
-                              >WORLD HERITAGE SERVICE</span
-                           >
+                           <span class="unesco-tag">WORLD HERITAGE SERVICE</span>
                            <h3>Upptäck historien nära dig</h3>
-                           <p>
-                              Utforska världsarv i realtid med vår interaktiva
-                              karta.
-                           </p>
+                           <p>Utforska världsarv i realtid med vår interaktiva karta.</p>
                         </div>
                         <div class="unesco-arrow" aria-hidden="true">→</div>
                      </div>
                   </button>
                </div>
                <p>
-                  Analytiker menar att avtalet är ett styrkebesked för svensk
-                  industri.
+                  Analytiker menar att avtalet är ett styrkebesked för svensk industri.
                </p>
             </section>
 
@@ -86,109 +75,74 @@
          </main>
       </div>
 
-      <!-- MODAL 1: REGISTRERING (FÖR BESÖKARE) -->
-      <div
-         id="unescoModal"
-         class="modal-overlay"
-         role="dialog"
-         aria-labelledby="regTitle"
-         aria-modal="true">
+      <div id="unescoModal" class="modal-overlay" role="dialog" aria-labelledby="regTitle" aria-modal="true">
          <div class="modal-window">
-            <button
-               class="close-modal"
-               id="closeAdBtn"
-               aria-label="Stäng fönster">
-               &times;
-            </button>
+            <button class="close-modal" id="closeAdBtn" aria-label="Stäng fönster">&times;</button>
             <div class="modal-header">
                <div class="fake-logo-small" aria-hidden="true">AV</div>
                <div>
                   <h2 id="regTitle" style="margin: 0">Världsarvstjänsten</h2>
-                  <p style="margin: 5px 0 0; font-size: 0.9rem; opacity: 0.9">
-                     Lokal information i realtid
-                  </p>
+                  <p style="margin: 5px 0 0; font-size: 0.9rem; opacity: 0.9">Lokal information i realtid</p>
                </div>
             </div>
 
             <div class="modal-body">
+               <div class="info-card">
+                  <h3><span aria-hidden="true">📍</span> Upptäck platsen</h3>
+                  <p>Du är nära <strong>Örlogsstaden Karlskrona</strong>. Som medlem får du tillgång till fördjupad historik och AI-guide.</p>
+               </div>
+
+               <div class="map-placeholder">
+                  <div class="map-header"><span aria-hidden="true">🗺️</span> Interaktiv karta</div>
+                  <div class="map-view">
+                     <p class="map-hint">Kartvy förbereds...</p>
+                  </div>
+               </div>
+
                <div class="subscription-box">
                   <h4>Bli Premium-prenumerant</h4>
                   <div class="subscription-form">
                      <div class="form-group">
                         <label for="phoneInput">Mobilnummer</label>
-                        <input
-                           type="tel"
-                           id="phoneInput"
-                           placeholder="070-000 00 00"
-                           required />
+                        <input type="tel" id="phoneInput" placeholder="070-000 00 00" required />
                      </div>
                      <div class="form-group">
                         <label for="nameInput">Namn</label>
-                        <input
-                           type="text"
-                           id="nameInput"
-                           placeholder="För- och efternamn"
-                           required />
+                        <input type="text" id="nameInput" placeholder="För- och efternamn" required />
                      </div>
                      <div class="form-group">
                         <label for="emailInput">E-post</label>
-                        <input
-                           type="email"
-                           id="emailInput"
-                           placeholder="namn@exempel.se"
-                           required />
+                        <input type="email" id="emailInput" placeholder="namn@exempel.se" required />
                      </div>
 
                      <button class="btn-bankid" id="bankidBtn">
-                        <img
-                           src="https://upload.wikimedia.org/wikipedia/commons/4/4e/BankID_logo.svg"
-                           alt=""
-                           aria-hidden="true" />
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/4/4e/BankID_logo.svg" alt="" aria-hidden="true" />
                         Bekräfta med BankID
                      </button>
                   </div>
                   <div class="footer-link">
-                     Redan medlem?
-                     <a href="#" id="toMemberView">Mina Sidor / Logga in</a>
+                     Redan medlem? <a href="#" id="toMemberView">Mina Sidor / Logga in</a>
                   </div>
                </div>
             </div>
          </div>
       </div>
 
-      <!-- MODAL 2: MINA SIDOR (PREMIUM-VY) -->
-      <div
-         id="memberModal"
-         class="modal-overlay"
-         role="dialog"
-         aria-labelledby="memberTitle"
-         aria-modal="true">
+      <div id="memberModal" class="modal-overlay" role="dialog" aria-labelledby="memberTitle" aria-modal="true">
          <div class="modal-window">
-            <button
-               class="close-modal"
-               id="closeMemberBtn"
-               aria-label="Stäng fönster">
-               &times;
-            </button>
+            <button class="close-modal" id="closeMemberBtn" aria-label="Stäng fönster">&times;</button>
             <div class="modal-header" style="background: var(--unesco-dark)">
                <div class="fake-logo-small" aria-hidden="true">AV</div>
                <div>
                   <h2 id="memberTitle" style="margin: 0">Mina Sidor</h2>
-                  <p style="margin: 5px 0 0; font-size: 0.9rem; opacity: 0.9">
-                     Inloggad som Premium-medlem
-                  </p>
+                  <p style="margin: 5px 0 0; font-size: 0.9rem; opacity: 0.9">Inloggad som Premium-medlem</p>
                </div>
             </div>
 
             <div class="modal-body">
                <div class="info-card">
-                  <h3>
-                     <span aria-hidden="true">📍</span> Världsarv i närheten
-                  </h3>
-                  <p>
-                     Du befinner dig just nu nära
-                     <strong>Örlogsstaden Karlskrona</strong>.
-                  </p>
+                  <h3><span aria-hidden="true">📍</span> Världsarv i närheten</h3>
+                  <p>Du befinner dig just nu nära <strong>Örlogsstaden Karlskrona</strong>.</p>
                   <div class="checkbox-group">
                      <label class="custom-checkbox">
                         <input type="checkbox" id="visitedCheck" />
@@ -197,37 +151,31 @@
                   </div>
                </div>
 
+               <div class="map-placeholder">
+                  <div class="map-header"><span aria-hidden="true">🗺️</span> Din Premium-karta</div>
+                  <div class="map-view premium-map">
+                     <p class="map-hint">Fullständig karta laddas...</p>
+                  </div>
+               </div>
+
                <div class="chatbot-container">
-                  <h4>
-                     <span class="sparkle" aria-hidden="true">✨</span> AI-Guide
-                     (Premium)
-                  </h4>
+                  <h4><span class="sparkle" aria-hidden="true">✨</span> AI-Guide (Premium)</h4>
                   <div class="chat-box" id="chatOutput" aria-live="polite">
-                     Välkommen! Jag är din personliga guide till Örlogsstaden
-                     Karlskrona. Vad vill du veta mer om platsen?
+                     Välkommen! Jag är din personliga guide till Örlogsstaden Karlskrona. Vad vill du veta mer om platsen?
                   </div>
                   <div class="chat-input-area">
-                     <label for="chatInput" class="visually-hidden"
-                        >Ställ en fråga</label
-                     >
-                     <input
-                        type="text"
-                        placeholder="Ställ en fråga..."
-                        id="chatInput" />
+                     <input type="text" placeholder="Ställ en fråga..." id="chatInput" />
                      <button id="sendChat">Fråga</button>
                   </div>
                </div>
 
                <div class="account-management">
-                  <button class="btn-cancel" onclick="confirmCancel()">
-                     Avsluta prenumeration
-                  </button>
+                  <button class="btn-cancel" onclick="confirmCancel()">Avsluta prenumeration</button>
                </div>
             </div>
          </div>
       </div>
 
-      <!-- Korrekt länkning till JS utifrån din filstruktur -->
       <script src="../static/js/script.js"></script>
    </body>
 </html>
