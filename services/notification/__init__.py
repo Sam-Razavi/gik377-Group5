@@ -1,8 +1,5 @@
 import logging
 
-from services.notification.routes import router as notification_router
-
-
 _logger = logging.getLogger("notification")
 if not _logger.handlers:
     _handler = logging.StreamHandler()
@@ -13,4 +10,4 @@ if not _logger.handlers:
     _logger.setLevel(logging.INFO)
     _logger.propagate = False
 
-__all__ = ["notification_router"]
+__all__ = []
