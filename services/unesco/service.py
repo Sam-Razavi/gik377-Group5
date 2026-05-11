@@ -85,6 +85,9 @@ def chat_about_unesco(message: str, sites: list) -> str:
                 "type": "text",
                 "text": (
                     "Du är en hjälpsam guide om UNESCO:s världsarv. "
+                    "Du svarar ENDAST på frågor som handlar om UNESCO, världsarv, kulturarv, naturarv eller specifika världsarvssajter. "
+                    "Om användaren frågar om något annat ämne svarar du: "
+                    "'Jag kan bara hjälpa till med frågor om UNESCO:s världsarv.' "
                     "Svara alltid på samma språk som användaren skriver på. "
                     "Håll svaren kortfattade och informativa."
                 ),

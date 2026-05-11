@@ -1,153 +1,181 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="sv">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Nyhetssajten - Senaste Nytt</title>
-    <link rel="stylesheet" href="../static/css/style.css" />
-  </head>
-  <body>
-    <div class="top-accent"></div>
+   <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>Dagstidningen - Senaste Nytt</title>
+      <link rel="stylesheet" href="../static/css/style.css" />
+   </head>
+   <body>
+      <div class="top-accent"></div>
 
-    <div class="news-wrapper">
-      <header class="news-header">
-        <div class="header-content">
-          <h1 class="logo">DAGS<span>TIDNINGEN</span></h1>
-          <nav class="main-nav">
-            <span>NYHETER</span>
-            <span>EKONOMI</span>
-            <span>KULTUR</span>
-            <span>SPORT</span>
-          </nav>
-        </div>
-        <div class="sub-header">
-          <p class="date">Torsdag 23 April, 2026</p>
-          <p class="weather">Stockholm: 14°C ☀️</p>
-        </div>
-      </header>
-
-      <main class="news-main">
-        <section class="main-article">
-          <div class="article-meta">
-            <span class="category-tag">EKONOMI</span>
-            <span class="read-time">3 min läsning</span>
-          </div>
-
-          <h1 class="article-title">
-            Nytt industriavtal klart – blir vägledande för lönerna
-          </h1>
-
-          <p class="lead-text">
-            Det nya industriavtalet är nu på plats efter intensiva förhandlingar
-            under natten. Överenskommelsen förväntas sätta ribban för hela den
-            svenska arbetsmarknaden under 2026 och 2027.
-          </p>
-
-          <p>
-            Parterna enades vid 03-tiden om ett avtal som innebär stabilitet för
-            både arbetsgivare och anställda. "Vi har landat i en ansvarsfull
-            nivå", säger en företrädare för Dagspressutgivarna AB.
-          </p>
-
-          <div class="ad-container">
-            <p class="ad-hint">ANNONS FRÅN UNESCO</p>
-            <div class="unesco-banner" id="openAdBtn">
-              <div class="unesco-content">
-                <div class="unesco-logo-wrapper">
-                  <img
-                    src="https://upload.wikimedia.org/wikipedia/commons/b/b1/UNESCO_logo.svg"
-                    alt="UNESCO Logo"
-                    class="unesco-logo"
-                  />
-                </div>
-                <div class="unesco-text">
-                  <span class="unesco-tag">WORLD HERITAGE</span>
-                  <h3>Upptäck historien nära dig</h3>
-                  <p>Utforska världsarv i realtid med vår interaktiva karta.</p>
-                </div>
-                <div class="unesco-arrow">→</div>
-              </div>
+      <div class="news-wrapper">
+         <header class="news-header">
+            <div class="header-content">
+               <h1 class="logo">DAGS<span>TIDNINGEN</span></h1>
+               <nav class="main-nav" aria-label="Huvudmeny">
+                  <ul>
+                     <li><a href="#">NYHETER</a></li>
+                     <li><a href="#">EKONOMI</a></li>
+                     <li><a href="#">KULTUR</a></li>
+                     <li><a href="#">SPORT</a></li>
+                  </ul>
+               </nav>
             </div>
-          </div>
+         </header>
 
-          <p>
-            Analytiker menar att avtalet är ett styrkebesked. Detaljerna i
-            paketet innehåller även satsningar på kompetensutveckling och
-            arbetsmiljö, vilket har varit en knäckfråga under processen.
-          </p>
-        </section>
+         <main class="news-main">
+            <section class="main-article">
+               <div class="article-meta">
+                  <span class="category-tag">EKONOMI</span>
+                  <span class="read-time">3 min läsning</span>
+               </div>
+               <h1 class="article-title">
+                  Nytt industriavtal klart – blir vägledande
+               </h1>
+               <p class="lead-text">
+                  Det nya industriavtalet är nu på plats efter intensiva
+                  förhandlingar under natten.
+               </p>
 
-        <aside class="sidebar">
-          <h3 class="sidebar-title">MEST LÄST JUST NU</h3>
-          <ol class="top-list">
-            <li>
-              <span class="rank">1</span>
-              <p>Fastighetsägare klagar på 38 bostäder: "Oväntat"</p>
-            </li>
-            <li>
-              <span class="rank">2</span>
-              <p>Attacken på häktet – vakt fick ärtsoppa i ansiktet</p>
-            </li>
-            <li>
-              <span class="rank">3</span>
-              <p>Guide: Så ser du världsarv på din resa</p>
-            </li>
-          </ol>
-        </aside>
-      </main>
-    </div>
+               <div class="ad-container">
+                  <p class="ad-hint">ANNONS: VÄRLDSARVSTJÄNSTEN</p>
+                  <button class="unesco-banner" id="openAdBtn" aria-haspopup="dialog">
+                     <div class="unesco-content">
+                        <div class="unesco-logo-wrapper">
+                           <div class="fake-logo" aria-hidden="true">AV</div>
+                        </div>
+                        <div class="unesco-text">
+                           <span class="unesco-tag">WORLD HERITAGE SERVICE</span>
+                           <h3>Upptäck historien nära dig</h3>
+                           <p>Utforska världsarv i realtid med vår interaktiva karta.</p>
+                        </div>
+                        <div class="unesco-arrow" aria-hidden="true">→</div>
+                     </div>
+                  </button>
+               </div>
+               <p>
+                  Analytiker menar att avtalet är ett styrkebesked för svensk industri.
+               </p>
+            </section>
 
-    <div id="unescoModal" class="modal-overlay">
-      <div class="modal-window">
-        <span class="close-modal" id="closeAdBtn">&times;</span>
-        <div class="modal-header">
-          <img
-            src="https://upload.wikimedia.org/wikipedia/commons/b/b1/UNESCO_logo.svg"
-            alt="UNESCO"
-            class="modal-logo-small"
-          />
-          <div>
-            <h2>Världsarvstjänsten</h2>
-            <p>Lokal information i realtid</p>
-          </div>
-        </div>
-        <div class="modal-body">
-          <div class="map-placeholder">
-            <span style="font-size: 40px">📍</span>
-            <p>Interaktiv karta laddas...</p>
-          </div>
-          <div class="info-card">
-            <h3>Örlogsstaden Karlskrona</h3>
-            <p>
-              Utforska en av världens bäst bevarade örlogsstäder. Använd kartan
-              ovan för att hitta specifika monument.
-            </p>
-          </div>
-          <div class="subscription-box">
-            <h4>Prenumerera på SMS-notiser</h4>
-            <div class="auth-action">
-              <input
-                type="tel"
-                placeholder="Ditt mobilnummer"
-                id="phoneInput"
-              />
-              <button class="btn-bankid" id="bankidBtn">
-                <img
-                  src="https://upload.wikimedia.org/wikipedia/commons/4/4e/BankID_logo.svg"
-                  alt="BankID"
-                  style="width: 20px"
-                />
-                Legitimera med BankID
-              </button>
-            </div>
-          </div>
-          <div style="text-align: center; margin-top: 20px">
-            <button class="btn-secondary">✨ Fråga AI-guiden</button>
-          </div>
-        </div>
+            <aside class="sidebar">
+               <h3 class="sidebar-title">MEST LÄST JUST NU</h3>
+               <ol class="top-list">
+                  <li>
+                     <span class="rank">1</span>
+                     <p>Fastighetsägare klagar på bostäder</p>
+                  </li>
+                  <li>
+                     <span class="rank">2</span>
+                     <p>Guide: Så ser du världsarv på resan</p>
+                  </li>
+               </ol>
+            </aside>
+         </main>
       </div>
-    </div>
 
-    <script src="../static/js/script.js"></script>
-  </body>
+      <div id="unescoModal" class="modal-overlay" role="dialog" aria-labelledby="regTitle" aria-modal="true">
+         <div class="modal-window">
+            <button class="close-modal" id="closeAdBtn" aria-label="Stäng fönster">&times;</button>
+            <div class="modal-header">
+               <div class="fake-logo-small" aria-hidden="true">AV</div>
+               <div>
+                  <h2 id="regTitle" style="margin: 0">Världsarvstjänsten</h2>
+                  <p style="margin: 5px 0 0; font-size: 0.9rem; opacity: 0.9">Lokal information i realtid</p>
+               </div>
+            </div>
+
+            <div class="modal-body">
+               <div class="info-card">
+                  <h3><span aria-hidden="true">📍</span> Upptäck platsen</h3>
+                  <p>Du är nära <strong>Örlogsstaden Karlskrona</strong>. Som medlem får du tillgång till fördjupad historik och AI-guide.</p>
+               </div>
+
+               <div class="map-placeholder">
+                  <div class="map-header"><span aria-hidden="true">🗺️</span> Interaktiv karta</div>
+                  <div class="map-view">
+                     <p class="map-hint">Kartvy förbereds...</p>
+                  </div>
+               </div>
+
+               <div class="subscription-box">
+                  <h4>Bli Premium-prenumerant</h4>
+                  <div class="subscription-form">
+                     <div class="form-group">
+                        <label for="phoneInput">Mobilnummer</label>
+                        <input type="tel" id="phoneInput" placeholder="070-000 00 00" required />
+                     </div>
+                     <div class="form-group">
+                        <label for="nameInput">Namn</label>
+                        <input type="text" id="nameInput" placeholder="För- och efternamn" required />
+                     </div>
+                     <div class="form-group">
+                        <label for="emailInput">E-post</label>
+                        <input type="email" id="emailInput" placeholder="namn@exempel.se" required />
+                     </div>
+
+                     <button class="btn-bankid" id="bankidBtn">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/4/4e/BankID_logo.svg" alt="" aria-hidden="true" />
+                        Bekräfta med BankID
+                     </button>
+                  </div>
+                  <div class="footer-link">
+                     Redan medlem? <a href="#" id="toMemberView">Mina Sidor / Logga in</a>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </div>
+
+      <div id="memberModal" class="modal-overlay" role="dialog" aria-labelledby="memberTitle" aria-modal="true">
+         <div class="modal-window">
+            <button class="close-modal" id="closeMemberBtn" aria-label="Stäng fönster">&times;</button>
+            <div class="modal-header" style="background: var(--unesco-dark)">
+               <div class="fake-logo-small" aria-hidden="true">AV</div>
+               <div>
+                  <h2 id="memberTitle" style="margin: 0">Mina Sidor</h2>
+                  <p style="margin: 5px 0 0; font-size: 0.9rem; opacity: 0.9">Inloggad som Premium-medlem</p>
+               </div>
+            </div>
+
+            <div class="modal-body">
+               <div class="info-card">
+                  <h3><span aria-hidden="true">📍</span> Världsarv i närheten</h3>
+                  <p>Du befinner dig just nu nära <strong>Örlogsstaden Karlskrona</strong>.</p>
+                  <div class="checkbox-group">
+                     <label class="custom-checkbox">
+                        <input type="checkbox" id="visitedCheck" />
+                        <span>Jag har besökt denna plats</span>
+                     </label>
+                  </div>
+               </div>
+
+               <div class="map-placeholder">
+                  <div class="map-header"><span aria-hidden="true">🗺️</span> Din Premium-karta</div>
+                  <div class="map-view premium-map">
+                     <p class="map-hint">Fullständig karta laddas...</p>
+                  </div>
+               </div>
+
+               <div class="chatbot-container">
+                  <h4><span class="sparkle" aria-hidden="true">✨</span> AI-Guide (Premium)</h4>
+                  <div class="chat-box" id="chatOutput" aria-live="polite">
+                     Välkommen! Jag är din personliga guide till Örlogsstaden Karlskrona. Vad vill du veta mer om platsen?
+                  </div>
+                  <div class="chat-input-area">
+                     <input type="text" placeholder="Ställ en fråga..." id="chatInput" />
+                     <button id="sendChat">Fråga</button>
+                  </div>
+               </div>
+
+               <div class="account-management">
+                  <button class="btn-cancel" onclick="confirmCancel()">Avsluta prenumeration</button>
+               </div>
+            </div>
+         </div>
+      </div>
+
+      <script src="../static/js/script.js"></script>
+   </body>
 </html>
