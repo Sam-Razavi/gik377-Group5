@@ -1,24 +1,69 @@
-const modal = document.getElementById("unescoModal");
+// MODAL-HANTERING
+const visitorModal = document.getElementById("unescoModal");
+const memberModal = document.getElementById("memberModal");
 const openBtn = document.getElementById("openAdBtn");
-const closeBtn = document.getElementById("closeAdBtn");
-const bankidBtn = document.getElementById("bankidBtn");
+const closeAdBtn = document.getElementById("closeAdBtn");
+const closeMemberBtn = document.getElementById("closeMemberBtn");
+const toMemberLink = document.getElementById("toMemberView");
 
-openBtn.onclick = () => (modal.style.display = "block");
-closeBtn.onclick = () => (modal.style.display = "none");
+let lastFocusedElement;
 
-bankidBtn.onclick = function () {
-  const phone = document.getElementById("phoneInput").value;
-  if (phone.length < 5) {
-    alert("Fyll i ditt mobilnummer först.");
-    return;
-  }
-  bankidBtn.innerText = "Öppnar BankID...";
-  setTimeout(() => {
-    alert("Anrop skickas till Sams backend för legitimering.");
-    bankidBtn.innerHTML = "Legitimera med BankID";
-  }, 1500);
+function openModal(modal) {
+   lastFocusedElement = document.activeElement;
+   modal.style.display = "flex";
+   document.body.style.overflow = "hidden";
+   modal.querySelector(".close-modal").focus();
+}
+
+function closeModal(modal) {
+   modal.style.display = "none";
+   document.body.style.overflow = "auto";
+   if (lastFocusedElement) lastFocusedElement.focus();
+}
+
+// Öppna första modalen (Registrering)
+openBtn.onclick = () => openModal(visitorModal);
+
+// Stäng-knappar
+closeAdBtn.onclick = () => closeModal(visitorModal);
+closeMemberBtn.onclick = () => closeModal(memberModal);
+
+// Växla till inloggad vy
+toMemberLink.onclick = (e) => {
+   e.preventDefault();
+   visitorModal.style.display = "none";
+   openModal(memberModal);
 };
 
-window.onclick = (event) => {
-  if (event.target == modal) modal.style.display = "none";
+// CHATT-FUNKTIONALITET
+document.getElementById("sendChat").onclick = () => {
+   const input = document.getElementById("chatInput");
+   const output = document.getElementById("chatOutput");
+   if (input.value.trim()) {
+      output.innerHTML += `<br><strong>Du:</strong> ${input.value}<br><strong>AI:</strong> Karlskrona är en unik örlogsstad med anor från 1600-talet...`;
+      input.value = "";
+      output.scrollTop = output.scrollHeight;
+   }
 };
+
+// PRENUMERATION
+function confirmCancel() {
+   if (confirm("Är du säker på att du vill avsluta din prenumeration?")) {
+      alert("Prenumeration avslutad.");
+   }
+}
+
+// STÄNG VID KLICK UTANFÖR ELLER ESC
+window.onclick = (e) => {
+   if (e.target.classList.contains("modal-overlay")) {
+      closeModal(visitorModal);
+      closeModal(memberModal);
+   }
+};
+
+document.addEventListener("keydown", (e) => {
+   if (e.key === "Escape") {
+      closeModal(visitorModal);
+      closeModal(memberModal);
+   }
+});

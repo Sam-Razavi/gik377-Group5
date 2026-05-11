@@ -16,3 +16,5 @@ anthropic
 google-cloud-translate
 google-auth-oauthlib
 pyotp
+pytest
+pytest-mock

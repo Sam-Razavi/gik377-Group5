@@ -15,6 +15,7 @@ from services.auth.schemas import (
     TwoFactorVerifyRequest,
     UserCreate,
     UserLogin,
+    UserProfileUpdate,
     UserResponse,
 )
 from services.auth.service import (
@@ -27,6 +28,7 @@ from services.auth.service import (
     login_user,
     register_user,
     setup_two_factor,
+    update_user_profile,
 )
 
 router = APIRouter()
@@ -75,6 +77,21 @@ def login_with_two_factor(
 @router.get("/me", response_model=UserResponse)
 def get_me(user=Depends(get_current_user)):
     return user
+
+
+@router.patch("/me/profile", response_model=UserResponse)
+def update_me_profile(
+    profile_data: UserProfileUpdate,
+    user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    updated_user = update_user_profile(
+        db=db,
+        user=user,
+        profile_data=profile_data,
+    )
+
+    return updated_user
 
 
 @router.post("/2fa/setup", response_model=TwoFactorSetupResponse)
