@@ -4,10 +4,16 @@
 
 import logging
 import re
-from services.notification.providers import SMSProvider, EmailProvider
+from services.notification.providers import (
+    EmailProvider,
+    MockEmailProvider,
+    MockSMSProvider,
+    SMSProvider,
+)
 from services.notification.config import (
     COOLDOWN_SMS_SECONDS,
     COOLDOWN_EMAIL_SECONDS,
+    NOTIFICATION_MOCK_MODE,
     SITE_PAGE_BASE_URL,
 )
 from services.notification import db
@@ -16,8 +22,12 @@ from services.notification import messages
 logger = logging.getLogger("notification")
 
 # Provider-instanser (kan bytas ut utan kodändringar i routes)
-sms_provider = SMSProvider()
-email_provider = EmailProvider()
+if NOTIFICATION_MOCK_MODE:
+    sms_provider = MockSMSProvider()
+    email_provider = MockEmailProvider()
+else:
+    sms_provider = SMSProvider()
+    email_provider = EmailProvider()
 
 # Initiera databasen vid import
 db.init_db()

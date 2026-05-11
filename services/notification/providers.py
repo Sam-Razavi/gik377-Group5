@@ -104,6 +104,14 @@ class SMSProvider:
         return {"success": False, "channel": "sms", "error": result}
 
 
+class MockSMSProvider:
+    """SMS-provider for local demo mode without HelloSMS credentials."""
+
+    def send(self, to, message, sender="UNESCO"):
+        logger.info("[MOCK SMS] to=%s message=%s", to, message)
+        return {"success": True, "channel": "sms", "detail": {"mock": True}}
+
+
 class EmailProvider:
     """
     E-post-provider. Nuvarande implementation använder SMTP2GO internt,
@@ -123,3 +131,11 @@ class EmailProvider:
         if success:
             return {"success": True, "channel": "email", "detail": result}
         return {"success": False, "channel": "email", "error": result}
+
+
+class MockEmailProvider:
+    """Email-provider for local demo mode without SMTP2GO credentials."""
+
+    def send(self, to, subject, message, sender=None):
+        logger.info("[MOCK EMAIL] to=%s subject=%s", to, subject)
+        return {"success": True, "channel": "email", "detail": {"mock": True}}
