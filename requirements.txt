@@ -14,3 +14,5 @@ httpx
 email-validator
 anthropic
 pyotp
+pytest
+pytest-mock
