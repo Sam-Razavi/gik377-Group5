@@ -8,6 +8,8 @@ import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 
 # Sam: Autentisering / backend
 from services.auth.router import router as auth_router
@@ -28,6 +30,15 @@ from services.payment.routes import router as payment_router
 # Skapar huvudappen för hela backend.
 # Alla moduler kopplas in här, men själva logiken ska ligga i respektive modul.
 app = FastAPI(title="Nordic Digital Solutions")
+
+app.mount("/static", StaticFiles(directory="frontend/static"), name="static")
+
+
+@app.get("/widget", response_class=HTMLResponse)
+def widget():
+    html_path = os.path.join("frontend", "templates", "index.html")
+    with open(html_path, encoding="utf-8") as f:
+        return f.read()
 
 
 def get_cors_origins() -> list[str]:

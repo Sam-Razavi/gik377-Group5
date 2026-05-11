@@ -4,10 +4,16 @@
 
 import logging
 import re
-from services.notification.providers import SMSProvider, EmailProvider
+from services.notification.providers import (
+    EmailProvider,
+    MockEmailProvider,
+    MockSMSProvider,
+    SMSProvider,
+)
 from services.notification.config import (
     COOLDOWN_SMS_SECONDS,
     COOLDOWN_EMAIL_SECONDS,
+    NOTIFICATION_MOCK_MODE,
     SITE_PAGE_BASE_URL,
 )
 from services.notification import db
@@ -15,12 +21,16 @@ from services.notification import messages
 
 logger = logging.getLogger("notification")
 
-# Provider-instanser (kan bytas ut utan kodändringar i routes)
-sms_provider = SMSProvider()
-email_provider = EmailProvider()
-
 # Initiera databasen vid import
 db.init_db()
+
+# Provider-instanser (kan bytas ut utan kodändringar i routes)
+if NOTIFICATION_MOCK_MODE or db.using_mock_storage():
+    sms_provider = MockSMSProvider()
+    email_provider = MockEmailProvider()
+else:
+    sms_provider = SMSProvider()
+    email_provider = EmailProvider()
 
 VALID_TYPES = ("sms", "email")
 _PHONE_RE = re.compile(r"^\+?[0-9\s\-]{7,15}$")

@@ -1,21 +1,54 @@
 """
-PostgreSQL-databas för persistent lagring av prenumeranter och skickade notifieringar.
-Använder psycopg2 som driver. Anslutningsparametrar läses från config.py.
+PostgreSQL storage for notification subscribers and sent notifications.
+Falls back to in-memory storage when notification mock mode is active.
 """
 
 import time
+import logging
+
 import psycopg2
 from psycopg2.extras import RealDictCursor
+
 from services.notification.config import (
-    PG_HOST,
-    PG_PORT,
+    NOTIFICATION_MOCK_MODE,
     PG_DATABASE,
-    PG_USER,
+    PG_HOST,
     PG_PASSWORD,
+    PG_PORT,
+    PG_USER,
 )
+
+logger = logging.getLogger("notification")
+_use_mock_storage = NOTIFICATION_MOCK_MODE
+
+_mock_subscribers = {}
+_mock_sent_log = {}
+_mock_visited = set()
+
+
+def _mock_enabled():
+    return _use_mock_storage
+
+
+def using_mock_storage():
+    return _mock_enabled()
+
+
+def _get_mock_subscriber(user_id):
+    sub = _mock_subscribers.get(user_id)
+    if not sub:
+        return None
+    return {
+        "phone": sub.get("phone"),
+        "email": sub.get("email"),
+        "sites": list(sub.get("sites", [])),
+    }
 
 
 def _connect():
+    if _mock_enabled():
+        raise RuntimeError("Using notification mock mode - no DB connection")
+
     conn = psycopg2.connect(
         host=PG_HOST,
         port=PG_PORT,
@@ -27,8 +60,22 @@ def _connect():
 
 
 def init_db():
-    """Skapar tabellerna om de inte redan finns."""
-    conn = _connect()
+    """Create tables if they do not already exist."""
+    global _use_mock_storage
+
+    if _mock_enabled():
+        return
+
+    try:
+        conn = _connect()
+    except psycopg2.Error as exc:
+        logger.warning(
+            "Notification database init failed: %s. Falling back to in-memory mock storage.",
+            exc,
+        )
+        _use_mock_storage = True
+        return
+
     with conn.cursor() as cur:
         cur.execute("""
             CREATE TABLE IF NOT EXISTS subscribers (
@@ -63,10 +110,11 @@ def init_db():
     conn.close()
 
 
-# --- Sent log (anti-spam) ---
-
 def get_last_sent(user_id, site_id, channel):
-    """Returnerar timestamp för senaste notifiering, eller 0."""
+    """Return the latest sent timestamp, or 0."""
+    if _mock_enabled():
+        return _mock_sent_log.get((user_id, site_id, channel), 0)
+
     conn = _connect()
     with conn.cursor() as cur:
         cur.execute(
@@ -79,7 +127,11 @@ def get_last_sent(user_id, site_id, channel):
 
 
 def mark_sent(user_id, site_id, channel):
-    """Registrerar att en notifiering har skickats."""
+    """Record that a notification was sent."""
+    if _mock_enabled():
+        _mock_sent_log[(user_id, site_id, channel)] = time.time()
+        return
+
     conn = _connect()
     with conn.cursor() as cur:
         cur.execute(
@@ -95,10 +147,11 @@ def mark_sent(user_id, site_id, channel):
     conn.close()
 
 
-# --- Visited (besökta världsarv) ---
-
 def is_visited(user_id, site_id):
-    """Returnerar True om användaren har bockat av detta världsarv."""
+    """Return True when the user has marked the site as visited."""
+    if _mock_enabled():
+        return (user_id, site_id) in _mock_visited
+
     conn = _connect()
     with conn.cursor() as cur:
         cur.execute(
@@ -111,7 +164,14 @@ def is_visited(user_id, site_id):
 
 
 def mark_visited(user_id, site_id):
-    """Markerar ett världsarv som besökt. Returnerar True om raden uppdaterades."""
+    """Mark a subscribed site as visited. Returns True if updated."""
+    if _mock_enabled():
+        sub = _mock_subscribers.get(user_id)
+        if not sub or site_id not in sub.get("sites", []):
+            return False
+        _mock_visited.add((user_id, site_id))
+        return True
+
     conn = _connect()
     with conn.cursor() as cur:
         cur.execute(
@@ -124,10 +184,23 @@ def mark_visited(user_id, site_id):
     return updated > 0
 
 
-# --- Prenumeranter ---
-
 def add_subscriber(user_id, phone=None, email=None, sites=None):
-    """Lägger till eller uppdaterar en prenumerant."""
+    """Add or update a subscriber."""
+    if _mock_enabled():
+        sub = _mock_subscribers.setdefault(
+            user_id,
+            {"phone": None, "email": None, "sites": []},
+        )
+        if phone:
+            sub["phone"] = phone
+        if email:
+            sub["email"] = email
+        if sites:
+            for site_id in sites:
+                if site_id not in sub["sites"]:
+                    sub["sites"].append(site_id)
+        return _get_mock_subscriber(user_id)
+
     conn = _connect()
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
         cur.execute("SELECT * FROM subscribers WHERE user_id=%s", (user_id,))
@@ -168,7 +241,27 @@ def add_subscriber(user_id, phone=None, email=None, sites=None):
 
 
 def remove_subscriber(user_id, sites=None):
-    """Tar bort prenumerant eller specifika platser."""
+    """Remove a subscriber or selected subscribed sites."""
+    if _mock_enabled():
+        if user_id not in _mock_subscribers:
+            return
+        if sites:
+            current_sites = _mock_subscribers[user_id].get("sites", [])
+            _mock_subscribers[user_id]["sites"] = [
+                site_id for site_id in current_sites if site_id not in sites
+            ]
+            for site_id in sites:
+                _mock_visited.discard((user_id, site_id))
+        else:
+            del _mock_subscribers[user_id]
+            for key in list(_mock_sent_log):
+                if key[0] == user_id:
+                    del _mock_sent_log[key]
+            for visited_key in list(_mock_visited):
+                if visited_key[0] == user_id:
+                    _mock_visited.discard(visited_key)
+        return
+
     conn = _connect()
     with conn.cursor() as cur:
         if sites:
@@ -185,7 +278,10 @@ def remove_subscriber(user_id, sites=None):
 
 
 def get_subscriber(user_id):
-    """Hämtar en enskild prenumerant."""
+    """Fetch one subscriber."""
+    if _mock_enabled():
+        return _get_mock_subscriber(user_id)
+
     conn = _connect()
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
         sub = _get_subscriber(cur, user_id)
@@ -194,7 +290,13 @@ def get_subscriber(user_id):
 
 
 def get_all_subscribers():
-    """Hämtar alla prenumeranter som dict."""
+    """Fetch all subscribers as a dict."""
+    if _mock_enabled():
+        return {
+            user_id: _get_mock_subscriber(user_id)
+            for user_id in _mock_subscribers
+        }
+
     conn = _connect()
     result = {}
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
@@ -212,6 +314,9 @@ def get_all_subscribers():
 
 
 def subscriber_exists(user_id):
+    if _mock_enabled():
+        return user_id in _mock_subscribers
+
     conn = _connect()
     with conn.cursor() as cur:
         cur.execute("SELECT 1 FROM subscribers WHERE user_id=%s", (user_id,))
@@ -221,7 +326,7 @@ def subscriber_exists(user_id):
 
 
 def _get_subscriber(cur, user_id):
-    """Intern hjälpfunktion - förväntar sig en cursor med RealDictCursor."""
+    """Internal helper for a RealDictCursor."""
     cur.execute("SELECT * FROM subscribers WHERE user_id=%s", (user_id,))
     row = cur.fetchone()
     if not row:

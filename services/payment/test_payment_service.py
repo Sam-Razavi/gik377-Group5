@@ -2,8 +2,8 @@
 
 import pytest
 from unittest.mock import MagicMock, patch
-from payment.service import PaymentService
-from payment.providers import InvoiceProvider
+from services.payment.service import PaymentService
+from services.payment.providers import InvoiceProvider, build_provider
 
 
 # ---------------------------------------------------------------------------
@@ -42,8 +42,16 @@ def stripe_mock():
 
 @pytest.fixture
 def service(stripe_mock):
-    with patch("payment.service.build_provider", return_value=stripe_mock):
+    with patch("services.payment.service.build_provider", return_value=stripe_mock):
         yield PaymentService()
+
+
+def test_build_provider_returns_invoice_when_stripe_key_missing(monkeypatch):
+    monkeypatch.delenv("STRIPE_SECRET_KEY", raising=False)
+
+    provider = build_provider()
+
+    assert isinstance(provider, InvoiceProvider)
 
 
 # ---------------------------------------------------------------------------
