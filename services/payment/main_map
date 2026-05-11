@@ -1,0 +1,162 @@
+═══════════════════════════════════════════════════════════════
+  MAIN MAP — Hela projektet
+═══════════════════════════════════════════════════════════════
+
+services/
+│
+├── __init__.py                     gör services/ till ett Python-paket
+│
+├── main_map                        ← den här filen — översikt av hela projektet
+├── text                            kodöversikt med radnummer per fil
+│
+│
+├── translation/                    ── DEL 1: ÖVERSÄTTNING (port 5001) ──
+│   │
+│   ├── app.py                      Flask-server — startas med: python3 app.py
+│   │                               Routes:
+│   │                                 GET  /                      → index.html
+│   │                                 GET  /nyheter               → nyheter.html
+│   │                                 GET  /translate/languages   → språklista
+│   │                                 POST /translate             → översätter text
+│   │                                 GET  /payment/config        → Stripe-nyckel
+│   │                                 POST /payment/intent        → client_secret
+│   │                                 POST /payment/checkout      → betalningslänk
+│   │                                 GET  /betalning/lyckades    → bekräftelsesida
+│   │                                 GET  /betalning/avbruten    → avbruten-sida
+│   │
+│   ├── service.py                  TranslationService
+│   │                                 .translate(text, target_language)
+│   │                                 .detect_language(text)
+│   │                                 .supported_languages()
+│   │
+│   ├── providers.py                GoogleTranslateProvider  ← primär
+│   │                               MockProvider             ← fallback om Google saknas
+│   │                               build_provider()         ← väljer rätt provider
+│   │
+│   ├── index.html                  Översättningsgränssnitt (frontend)
+│   │                                 laddaSprak()   → fyller dropdown med språk
+│   │                                 oversatt()     → skickar text, visar svar
+│   │
+│   ├── routes.py                   FastAPI-router (ej aktiv — Flask används)
+│   │
+│   ├── test_translation_service.py 10 automatiska tester (pytest) — alla godkända ✓
+│   │
+│   ├── .env                       ⚠️   innehåller Stripe-nycklar
+│   │                                 STRIPE_PUBLISHABLE_KEY=pk_test_...
+│   │                                 STRIPE_SECRET_KEY=sk_test_...
+│   │                                 PAYMENT_PROVIDER=stripe
+│   │
+│   ├── credentials/                ⚠️  Google OAuth-filer
+│   │   ├── client_secret.json      Google OAuth-credentials
+│   │   └── token.json              sparad inloggningstoken
+│   │
+│   └── __init__.py                 gör mappen till ett Python-paket
+│
+│
+└── payment/                        ── DEL 2: BETALNING (port 5002) ──
+    │
+    ├── app.py                      Flask-server — startas med: python3 app.py
+    │                               Routes:
+    │                                 GET  /                          → index.html
+    │                                 GET  /betalning/lyckades        → bekräftelsesida
+    │                                 GET  /betalning/avbruten        → avbruten-sida
+    │                                 GET  /payment/config            → Stripe-nyckel
+    │                                 POST /payment/intent            → client_secret
+    │                                 POST /payment/checkout          → betalningslänk
+    │                                 POST /payment/create            → ny prenumeration
+    │                                 GET  /payment/subscription/<id> → status
+    │                                 POST /payment/cancel            → avbryt prenumeration
+    │
+    ├── service.py                  PaymentService
+    │                                 .create_payment_intent(price_id, email)
+    │                                 .create_checkout_session(price_id, success, cancel)
+    │                                 .create_subscription(user_id, plan_id, method)
+    │                                 .cancel_subscription(subscription_id, method)
+    │                                 .get_subscription(subscription_id, method)
+    │
+    ├── providers.py                StripeProvider   ← kortbetalning via Stripe API
+    │                                 API-version låst: 2024-11-20.acacia
+    │                                 Pris: 39 kr/mån (price_1TRqWVHYkj0fomnSAd10SVLn)
+    │                               InvoiceProvider  ← fakturalösning (in-memory)
+    │                               build_provider() ← skapar alltid StripeProvider
+    │
+    ├── index.html                  Betalningsgränssnitt (frontend)
+    │                               Stripe Elements — inbäddat kortformulär
+    │                                 initStripe()         → hämtar nyckel, startar Stripe.js
+    │                                 payment-form         → e-post, namn, kortuppgifter
+    │                                 confirmCardPayment() → Stripe verifierar kortet
+    │
+    ├── test_payment_service.py     13 automatiska tester (pytest) — alla godkända ✓
+    │
+    ├── conftest.py                 fixar Python-sökväg för pytest
+    │
+    ├── routes.py                   FastAPI-router (ej aktiv — Flask används)
+    │
+    ├── .env                        ⚠️  DELA INTE — innehåller Stripe-nycklar
+    │                                 STRIPE_PUBLISHABLE_KEY=pk_test_...
+    │                                 STRIPE_SECRET_KEY=sk_test_...
+    │                                 PAYMENT_PROVIDER=stripe
+    │
+    └── __init__.py                 gör mappen till ett Python-paket
+
+
+═══════════════════════════════════════════════════════════════
+  STARTA SERVRARNA
+═══════════════════════════════════════════════════════════════
+
+  Översättning (port 5001):
+    cd "/Users/Nina/Desktop/text mapp/services/translation"
+    python3 app.py
+
+  Betalning (port 5002):
+    cd "/Users/Nina/Desktop/text mapp/services/payment"
+    python3 app.py
+
+  Stoppa server:  Ctrl + C
+
+  Port upptagen:
+    lsof -ti :5001 | xargs kill -9
+    lsof -ti :5002 | xargs kill -9
+
+
+═══════════════════════════════════════════════════════════════
+  KÖR TESTER
+═══════════════════════════════════════════════════════════════
+
+  Alla tester:
+    cd "/Users/Nina/Desktop/text mapp"
+    python3 -m pytest services/ -v
+
+  Bara betalning:
+    python3 -m pytest services/payment/test_payment_service.py -v
+
+  Bara översättning:
+    python3 -m pytest services/translation/test_translation_service.py -v
+
+  Status: 13 payment ✓  +  10 translation ✓  =  23 totalt ✓
+
+
+═══════════════════════════════════════════════════════════════
+  TESTKORT (Stripe testläge)
+═══════════════════════════════════════════════════════════════
+
+  Visa:        4242 4242 4242 4242
+  Mastercard:  5555 5555 5555 4444
+  Datum:       12/34   CVC: 123
+  Pris:        39 kr/mån
+
+
+═══════════════════════════════════════════════════════════════
+  FÅR DELAS         FÅR INTE DELAS
+═══════════════════════════════════════════════════════════════
+
+  ✓ app.py                      ✗ .env
+  ✓ service.py                  ✗ credentials/client_secret.json
+  ✓ providers.py                ✗ credentials/token.json
+  ✓ index.html
+  ✓ routes.py
+  ✓ test_payment_service.py
+  ✓ test_translation_service.py
+  ✓ conftest.py
+  ✓ main_map
+  ✓ text

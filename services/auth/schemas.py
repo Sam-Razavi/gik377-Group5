@@ -33,6 +33,13 @@ class UserResponse(BaseModel):
     }
 
 
+class UserProfileUpdate(BaseModel):
+    full_name: str | None = None
+    home_address: str | None = None
+    home_lat: float | None = None
+    home_lon: float | None = None
+
+
 class Token(BaseModel):
     access_token: str
     token_type: str
