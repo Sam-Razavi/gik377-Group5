@@ -4,6 +4,7 @@ Falls back to in-memory storage when notification mock mode is active.
 """
 
 import time
+import logging
 
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -17,9 +18,20 @@ from services.notification.config import (
     PG_USER,
 )
 
+logger = logging.getLogger("notification")
+_use_mock_storage = NOTIFICATION_MOCK_MODE
+
 _mock_subscribers = {}
 _mock_sent_log = {}
 _mock_visited = set()
+
+
+def _mock_enabled():
+    return _use_mock_storage
+
+
+def using_mock_storage():
+    return _mock_enabled()
 
 
 def _get_mock_subscriber(user_id):
@@ -34,7 +46,7 @@ def _get_mock_subscriber(user_id):
 
 
 def _connect():
-    if NOTIFICATION_MOCK_MODE:
+    if _mock_enabled():
         raise RuntimeError("Using notification mock mode - no DB connection")
 
     conn = psycopg2.connect(
@@ -49,10 +61,21 @@ def _connect():
 
 def init_db():
     """Create tables if they do not already exist."""
-    if NOTIFICATION_MOCK_MODE:
+    global _use_mock_storage
+
+    if _mock_enabled():
         return
 
-    conn = _connect()
+    try:
+        conn = _connect()
+    except psycopg2.Error as exc:
+        logger.warning(
+            "Notification database init failed: %s. Falling back to in-memory mock storage.",
+            exc,
+        )
+        _use_mock_storage = True
+        return
+
     with conn.cursor() as cur:
         cur.execute("""
             CREATE TABLE IF NOT EXISTS subscribers (
@@ -89,7 +112,7 @@ def init_db():
 
 def get_last_sent(user_id, site_id, channel):
     """Return the latest sent timestamp, or 0."""
-    if NOTIFICATION_MOCK_MODE:
+    if _mock_enabled():
         return _mock_sent_log.get((user_id, site_id, channel), 0)
 
     conn = _connect()
@@ -105,7 +128,7 @@ def get_last_sent(user_id, site_id, channel):
 
 def mark_sent(user_id, site_id, channel):
     """Record that a notification was sent."""
-    if NOTIFICATION_MOCK_MODE:
+    if _mock_enabled():
         _mock_sent_log[(user_id, site_id, channel)] = time.time()
         return
 
@@ -126,7 +149,7 @@ def mark_sent(user_id, site_id, channel):
 
 def is_visited(user_id, site_id):
     """Return True when the user has marked the site as visited."""
-    if NOTIFICATION_MOCK_MODE:
+    if _mock_enabled():
         return (user_id, site_id) in _mock_visited
 
     conn = _connect()
@@ -142,7 +165,7 @@ def is_visited(user_id, site_id):
 
 def mark_visited(user_id, site_id):
     """Mark a subscribed site as visited. Returns True if updated."""
-    if NOTIFICATION_MOCK_MODE:
+    if _mock_enabled():
         sub = _mock_subscribers.get(user_id)
         if not sub or site_id not in sub.get("sites", []):
             return False
@@ -163,7 +186,7 @@ def mark_visited(user_id, site_id):
 
 def add_subscriber(user_id, phone=None, email=None, sites=None):
     """Add or update a subscriber."""
-    if NOTIFICATION_MOCK_MODE:
+    if _mock_enabled():
         sub = _mock_subscribers.setdefault(
             user_id,
             {"phone": None, "email": None, "sites": []},
@@ -219,7 +242,7 @@ def add_subscriber(user_id, phone=None, email=None, sites=None):
 
 def remove_subscriber(user_id, sites=None):
     """Remove a subscriber or selected subscribed sites."""
-    if NOTIFICATION_MOCK_MODE:
+    if _mock_enabled():
         if user_id not in _mock_subscribers:
             return
         if sites:
@@ -256,7 +279,7 @@ def remove_subscriber(user_id, sites=None):
 
 def get_subscriber(user_id):
     """Fetch one subscriber."""
-    if NOTIFICATION_MOCK_MODE:
+    if _mock_enabled():
         return _get_mock_subscriber(user_id)
 
     conn = _connect()
@@ -268,7 +291,7 @@ def get_subscriber(user_id):
 
 def get_all_subscribers():
     """Fetch all subscribers as a dict."""
-    if NOTIFICATION_MOCK_MODE:
+    if _mock_enabled():
         return {
             user_id: _get_mock_subscriber(user_id)
             for user_id in _mock_subscribers
@@ -291,7 +314,7 @@ def get_all_subscribers():
 
 
 def subscriber_exists(user_id):
-    if NOTIFICATION_MOCK_MODE:
+    if _mock_enabled():
         return user_id in _mock_subscribers
 
     conn = _connect()

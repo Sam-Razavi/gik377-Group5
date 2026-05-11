@@ -1,9 +1,12 @@
 """Tests for Notification Service mock mode."""
 
+import os
+
+os.environ["NOTIFICATION_MOCK_MODE"] = "true"
+
 from fastapi.testclient import TestClient
 
-from services.notification import db
-from services.notification.config import NOTIFICATION_MOCK_MODE
+import services.notification.db as db
 from services.notification.providers import MockEmailProvider, MockSMSProvider
 from services.notification.routes import router
 from services.notification.service import (
@@ -27,8 +30,8 @@ def clear_mock_db():
     db._mock_visited.clear()
 
 
-def test_notification_mock_mode_is_enabled_without_credentials():
-    assert NOTIFICATION_MOCK_MODE is True
+def test_notification_uses_mock_storage():
+    assert db.using_mock_storage() is True
 
 
 def test_mock_sms_provider_returns_success():

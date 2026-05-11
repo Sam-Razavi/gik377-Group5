@@ -21,16 +21,16 @@ from services.notification import messages
 
 logger = logging.getLogger("notification")
 
+# Initiera databasen vid import
+db.init_db()
+
 # Provider-instanser (kan bytas ut utan kodändringar i routes)
-if NOTIFICATION_MOCK_MODE:
+if NOTIFICATION_MOCK_MODE or db.using_mock_storage():
     sms_provider = MockSMSProvider()
     email_provider = MockEmailProvider()
 else:
     sms_provider = SMSProvider()
     email_provider = EmailProvider()
-
-# Initiera databasen vid import
-db.init_db()
 
 VALID_TYPES = ("sms", "email")
 _PHONE_RE = re.compile(r"^\+?[0-9\s\-]{7,15}$")
