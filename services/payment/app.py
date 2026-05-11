@@ -1,3 +1,4 @@
+# Standalone Flask server - use FastAPI routes.py for the main app.
 """
 =============================================================
   BETALNINGSSERVER  —  services/payment/app.py
