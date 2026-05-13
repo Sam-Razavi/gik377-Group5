@@ -3,7 +3,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from core.dependencies import get_db
-from services.auth.bankid import collect_bankid_status, initiate_bankid_auth
+from services.auth.bankid import cleanup_qr_session, collect_bankid_status, get_qr_data, initiate_bankid_auth
 from services.auth.schemas import (
     BankIDInitiateResponse,
     BankIDLoginResponse,
@@ -139,11 +139,21 @@ async def bankid_initiate():
     return result
 
 
+@router.get("/bankid/qr/{order_ref}")
+async def bankid_qr(order_ref: str):
+    qr = get_qr_data(order_ref)
+    if qr is None:
+        raise HTTPException(status_code=404, detail="QR-session hittades inte.")
+    return {"qr_data": qr}
+
+
 @router.get("/bankid/status/{order_ref}", response_model=BankIDLoginResponse)
 async def bankid_status(order_ref: str, db: Session = Depends(get_db)):
     result = await collect_bankid_status(order_ref)
 
     if result.get("status") != "complete":
+        if result.get("status") == "failed":
+            cleanup_qr_session(order_ref)
         return {
             "status": result.get("status"),
             "hintCode": result.get("hintCode"),
@@ -165,6 +175,7 @@ async def bankid_status(order_ref: str, db: Session = Depends(get_db)):
             detail="BankID completed but no personal number was returned",
         )
 
+    cleanup_qr_session(order_ref)
     login_result = handle_completed_bankid_login(
         db=db,
         personal_number=personal_number,

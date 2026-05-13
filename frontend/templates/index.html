@@ -6,7 +6,9 @@
       <title>Dagstidningen - Senaste Nytt</title>
       <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
       <link rel="stylesheet" href="/static/css/style.css" />
+      <link rel="icon" href="data:,">
       <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
    </head>
    <body>
       <div class="top-accent"></div>
@@ -134,6 +136,10 @@
                         <input type="email" id="emailInput" placeholder="namn@exempel.se" />
                      </div>
                      <div class="form-group">
+                        <label for="passwordInput">Lösenord</label>
+                        <input type="password" id="passwordInput" placeholder="Minst 8 tecken" minlength="8" />
+                     </div>
+                     <div class="form-group">
                         <label for="paymentMethod">Betalning</label>
                         <select id="paymentMethod">
                            <option value="invoice">Faktura demo</option>
@@ -142,9 +148,19 @@
                      </div>
 
                      <button class="btn-bankid" id="bankidBtn" type="button">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/4/4e/BankID_logo.svg" alt="" aria-hidden="true" />
+                        <img src="/static/img/bankid-logo.svg" alt="" aria-hidden="true" onerror="this.style.display='none'" />
                         Bekräfta med BankID
                      </button>
+                     <div id="bankidChoicePanel" style="display:none;flex-direction:column;gap:8px;margin-top:8px;">
+                        <button class="btn-bankid" id="bankidDeviceBtn" type="button">BankID på den här enheten</button>
+                        <button class="btn-bankid" id="bankidMobileBtn" type="button">Mobilt BankID (QR-kod)</button>
+                     </div>
+                     <div id="bankidQrPanel" hidden style="text-align:center;margin-top:12px;">
+                        <p style="font-size:0.85rem;margin-bottom:8px;">Öppna BankID-appen och skanna QR-koden</p>
+                        <div id="bankidQrCode" style="display:inline-block;"></div>
+                        <br/>
+                        <button class="btn-cancel" id="bankidQrCancelBtn" type="button" style="width:auto;padding:8px 20px;margin-top:8px;">← Tillbaka</button>
+                     </div>
                      <button class="btn-primary" type="submit">Aktivera prenumeration</button>
                   </form>
                   <div class="form-status" id="widgetStatus" aria-live="polite"></div>
@@ -168,6 +184,18 @@
             </div>
 
             <div class="modal-body">
+               <button class="btn-cancel" id="backToVisitorBtn" type="button" style="margin-top:0;margin-bottom:12px;">← Tillbaka</button>
+
+               <div id="userInfoPanel" hidden>
+                  <div class="info-card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+                     <div>
+                        <strong id="userNameDisplay"></strong><br>
+                        <small id="userEmailDisplay" style="opacity:0.7;font-size:0.8rem;"></small>
+                     </div>
+                     <button class="btn-cancel" id="logoutBtn" type="button" style="width:auto;margin:0;padding:8px 16px;">Logga ut</button>
+                  </div>
+               </div>
+
                <form class="login-form" id="loginForm">
                   <h4>Logga in</h4>
                   <div class="form-group">
@@ -181,6 +209,25 @@
                   <button class="btn-primary" type="submit">Logga in</button>
                </form>
 
+               <div id="memberBankidSection">
+                  <p style="text-align:center;margin:8px 0;font-size:0.85rem;opacity:0.7;">— eller —</p>
+                  <button class="btn-bankid" id="memberBankidBtn" type="button">
+                     <img src="/static/img/bankid-logo.svg" alt="" aria-hidden="true" onerror="this.style.display='none'" />
+                     Logga in med BankID
+                  </button>
+                  <div id="memberBankidChoicePanel" style="display:none;flex-direction:column;gap:8px;margin-top:8px;">
+                     <button class="btn-bankid" id="memberBankidDeviceBtn" type="button">BankID på den här enheten</button>
+                     <button class="btn-bankid" id="memberBankidMobileBtn" type="button">Mobilt BankID (QR-kod)</button>
+                  </div>
+                  <div id="memberBankidQrPanel" hidden style="text-align:center;margin-top:12px;">
+                     <p style="font-size:0.85rem;margin-bottom:8px;">Öppna BankID-appen och skanna QR-koden</p>
+                     <div id="memberBankidQrCode" style="display:inline-block;"></div>
+                     <br/>
+                     <button class="btn-cancel" id="memberBankidQrCancelBtn" type="button" style="width:auto;padding:8px 20px;margin-top:8px;">← Tillbaka</button>
+                  </div>
+                  <div class="form-status" id="memberBankidStatus" aria-live="polite"></div>
+               </div>
+
                <form class="login-form" id="twoFactorForm" hidden>
                   <h4>Tvåfaktorskod</h4>
                   <div class="form-group">
@@ -191,7 +238,32 @@
                </form>
                <div class="form-status" id="loginStatus" aria-live="polite"></div>
 
-               <div class="info-card">
+               <div id="twoFaPanel" hidden>
+                  <div class="info-card">
+                     <h4 style="margin-top:0;">Tvåfaktorsautentisering</h4>
+                     <p id="twoFaStatusText">Laddar...</p>
+                     <button class="btn-primary" id="twoFaActionBtn" type="button" style="margin-top:4px;">Aktivera 2FA</button>
+                     <div id="twoFaSetupBox" hidden style="margin-top:12px;">
+                        <p style="font-size:0.85rem;margin-bottom:8px;">Skanna med Google Authenticator eller liknande app:</p>
+                        <div id="twoFaQrCode" style="text-align:center;margin:8px 0;"></div>
+                        <div class="form-group">
+                           <label for="twoFaCodeInput">Bekräfta med kod från appen</label>
+                           <input type="text" id="twoFaCodeInput" inputmode="numeric" placeholder="123456" maxlength="6" />
+                        </div>
+                        <button class="btn-primary" id="twoFaVerifyBtn" type="button">Aktivera</button>
+                     </div>
+                     <div id="twoFaDisableBox" hidden style="margin-top:12px;">
+                        <div class="form-group">
+                           <label for="twoFaDisableCodeInput">Kod från appen för att inaktivera</label>
+                           <input type="text" id="twoFaDisableCodeInput" inputmode="numeric" placeholder="123456" maxlength="6" />
+                        </div>
+                        <button class="btn-cancel" id="twoFaDisableVerifyBtn" type="button" style="margin-top:0;">Bekräfta inaktivering</button>
+                     </div>
+                     <div class="form-status" id="twoFaStatus" aria-live="polite" style="margin-top:8px;font-size:0.85rem;"></div>
+                  </div>
+               </div>
+
+               <div class="info-card" id="memberSiteCard" hidden>
                   <h3>Världsarv i närheten</h3>
                   <p id="memberSiteText">Hämtar närmaste världsarv...</p>
                   <div class="checkbox-group">
@@ -203,13 +275,13 @@
                </div>
 
                <div class="map-placeholder">
-                  <div class="map-header">Din Premium-karta</div>
+                  <div class="map-header" id="memberMapHeader">Interaktiv karta</div>
                   <div class="map-view premium-map" id="member-map-view">
                      <p class="map-hint">Fullständig karta laddas...</p>
                   </div>
                </div>
 
-               <div class="chatbot-container">
+               <div class="chatbot-container" id="chatbotContainer" hidden>
                   <h4>AI-Guide (Premium)</h4>
                   <div class="chat-box" id="chatOutput" aria-live="polite">
                      Välkommen! Ställ en fråga om världsarven nära dig.
