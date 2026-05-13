@@ -42,28 +42,19 @@ def widget():
 
 
 def get_cors_origins() -> list[str]:
-    """
-    Hämtar tillåtna frontend-adresser från .env.
-
-    Exempel i .env:
-    CORS_ORIGINS=http://localhost:5500,http://127.0.0.1:5500
-
-    Om inget anges använder vi "*" under lokal utveckling.
-    """
     origins = os.getenv("CORS_ORIGINS", "*")
-
     if origins == "*":
         return ["*"]
+    return [o.strip() for o in origins.split(",") if o.strip()]
 
-    return [origin.strip() for origin in origins.split(",") if origin.strip()]
 
+_cors_origins = get_cors_origins()
+_allow_credentials = _cors_origins != ["*"]
 
-# CORS gör att frontend kan prata med backend även om de körs på olika portar.
-# Under utveckling är "*" okej, men senare kan vi begränsa det via CORS_ORIGINS i .env.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=get_cors_origins(),
-    allow_credentials=True,
+    allow_origins=_cors_origins,
+    allow_credentials=_allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )
