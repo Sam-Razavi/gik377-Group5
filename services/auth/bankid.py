@@ -7,18 +7,22 @@ from core.config import settings
 
 
 def create_ssl_context() -> ssl.SSLContext:
-    """
-    Creates an SSL context with:
-    - trusted BankID test CA
-    - client certificate (your .pem file)
-    """
-    context = ssl.create_default_context(cafile=settings.bankid_ca_file)
+    import os
 
+    if not settings.bankid_cert_file or not os.path.exists(settings.bankid_cert_file):
+        raise RuntimeError(
+            "BankID är inte i mock-läge men BANKID_CERT_FILE saknas eller finns inte. "
+            "Sätt BANKID_MOCK_MODE=true i .env för demo, eller ange giltiga certifikatfiler."
+        )
+    if not settings.bankid_ca_file or not os.path.exists(settings.bankid_ca_file):
+        raise RuntimeError(
+            "BankID CA-fil saknas: BANKID_CA_FILE pekar inte på en befintlig fil."
+        )
+    context = ssl.create_default_context(cafile=settings.bankid_ca_file)
     context.load_cert_chain(
         certfile=settings.bankid_cert_file,
         password=settings.bankid_cert_password,
     )
-
     return context
 
 
