@@ -152,6 +152,27 @@
                      Redan medlem? <a href="#" id="toMemberView">Mina Sidor / Logga in</a>
                   </div>
                </div>
+
+               <div id="setPasswordSection" hidden>
+                  <h4>Slutför ditt konto</h4>
+                  <p style="font-size:0.9rem;margin-bottom:1rem;">Ditt konto är skapat. Välj inloggningsuppgifter för att komma åt Mina Sidor.</p>
+                  <form id="setCredentialsForm">
+                     <div class="form-group" id="setupEmailGroup">
+                        <label for="setupEmail">E-postadress (användarnamn)</label>
+                        <input type="email" id="setupEmail" placeholder="namn@exempel.se" />
+                     </div>
+                     <div class="form-group">
+                        <label for="newPassword">Välj lösenord</label>
+                        <input type="password" id="newPassword" placeholder="Minst 8 tecken" />
+                     </div>
+                     <div class="form-group">
+                        <label for="confirmPassword">Bekräfta lösenord</label>
+                        <input type="password" id="confirmPassword" placeholder="Upprepa lösenordet" />
+                     </div>
+                     <button class="btn-primary" type="submit">Spara och fortsätt</button>
+                  </form>
+                  <div class="form-status" id="setPasswordStatus" aria-live="polite"></div>
+               </div>
             </div>
          </div>
       </div>
@@ -160,6 +181,7 @@
          <div class="modal-window">
             <button class="close-modal" id="closeMemberBtn" aria-label="Stäng fönster">&times;</button>
             <div class="modal-header" style="background: var(--unesco-dark)">
+               <button id="backToVisitorBtn" aria-label="Tillbaka" style="background:none;border:none;color:white;font-size:1.2rem;cursor:pointer;margin-right:0.75rem;padding:0;">&#8592;</button>
                <div class="fake-logo-small" aria-hidden="true">AV</div>
                <div>
                   <h2 id="memberTitle" style="margin: 0">Mina Sidor</h2>
@@ -191,7 +213,7 @@
                </form>
                <div class="form-status" id="loginStatus" aria-live="polite"></div>
 
-               <div class="info-card">
+               <div class="info-card" id="memberInfoCard" hidden>
                   <h3>Världsarv i närheten</h3>
                   <p id="memberSiteText">Hämtar närmaste världsarv...</p>
                   <div class="checkbox-group">
@@ -202,14 +224,14 @@
                   </div>
                </div>
 
-               <div class="map-placeholder">
+               <div class="map-placeholder" id="memberMapSection" hidden>
                   <div class="map-header">Din Premium-karta</div>
                   <div class="map-view premium-map" id="member-map-view">
                      <p class="map-hint">Fullständig karta laddas...</p>
                   </div>
                </div>
 
-               <div class="chatbot-container">
+               <div class="chatbot-container" id="chatbotContainer" hidden>
                   <h4>AI-Guide (Premium)</h4>
                   <div class="chat-box" id="chatOutput" aria-live="polite">
                      Välkommen! Ställ en fråga om världsarven nära dig.
@@ -220,7 +242,7 @@
                   </div>
                </div>
 
-               <div class="account-management">
+               <div class="account-management" id="accountManagement" hidden>
                   <button class="btn-cancel" id="cancelSubscriptionBtn" type="button">Avsluta prenumeration</button>
                </div>
             </div>

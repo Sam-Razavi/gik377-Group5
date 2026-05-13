@@ -3,6 +3,8 @@ const API_BASE =
       ? window.location.origin
       : "http://localhost:8000";
 
+const PAGE_LANG = document.documentElement.lang || "sv";
+
 const DEFAULT_POSITION = { lat: 60.4858, lon: 15.4358 };
 const SEARCH_RADIUS_KM = 150;
 
@@ -36,6 +38,7 @@ let visitorMap = null;
 let memberMap = null;
 let tempToken = null;
 let widgetLoaded = false;
+let pendingEmail = null;
 
 function openModal(modal) {
    lastFocusedElement = document.activeElement;
@@ -283,14 +286,17 @@ async function sendChatMessage() {
    input.value = "";
    output.scrollTop = output.scrollHeight;
 
+   const token = sessionStorage.getItem("auth_token");
    try {
       const result = await apiFetch("/unesco/chat", {
          method: "POST",
+         headers: token ? { Authorization: `Bearer ${token}` } : {},
          body: JSON.stringify({
             message,
             lat: currentPosition.lat,
             lon: currentPosition.lon,
             radius: SEARCH_RADIUS_KM,
+            page_lang: PAGE_LANG,
          }),
       });
       output.innerHTML = output.innerHTML.replace("Laddar...", escapeHtml(result.answer));
@@ -298,6 +304,21 @@ async function sendChatMessage() {
       output.innerHTML = output.innerHTML.replace("Laddar...", escapeHtml(error.message));
    }
    output.scrollTop = output.scrollHeight;
+}
+
+function showMemberContent() {
+   document.getElementById("loginForm").hidden = true;
+   document.getElementById("twoFactorForm").hidden = true;
+   document.getElementById("memberInfoCard").hidden = false;
+   document.getElementById("memberMapSection").hidden = false;
+   document.getElementById("chatbotContainer").hidden = false;
+   document.getElementById("accountManagement").hidden = false;
+   renderSiteSummary();
+   renderMap("member-map-view", "member");
+}
+
+function showChatIfLoggedIn() {
+   if (sessionStorage.getItem("auth_token")) showMemberContent();
 }
 
 async function initiateBankId() {
@@ -369,6 +390,18 @@ async function subscribe(event) {
       }
 
       setStatus(widgetStatus, "Prenumeration aktiverad!");
+
+      pendingEmail = email || null;
+      const setupEmailGroup = document.getElementById("setupEmailGroup");
+      const setupEmailInput = document.getElementById("setupEmail");
+      if (pendingEmail) {
+         setupEmailInput.value = pendingEmail;
+         setupEmailGroup.hidden = true;
+      } else {
+         setupEmailGroup.hidden = false;
+      }
+      subscribeForm.hidden = true;
+      document.getElementById("setPasswordSection").hidden = false;
    } catch (error) {
       setStatus(widgetStatus, error.message, true);
    }
@@ -396,6 +429,7 @@ async function login(event) {
 
       sessionStorage.setItem("auth_token", result.access_token);
       setStatus(loginStatus, "Inloggad.");
+      showMemberContent();
    } catch (error) {
       setStatus(loginStatus, error.message, true);
    }
@@ -416,6 +450,7 @@ async function completeTwoFactor(event) {
       sessionStorage.setItem("auth_token", result.access_token);
       twoFactorForm.hidden = true;
       setStatus(loginStatus, "Inloggad.");
+      showMemberContent();
    } catch (error) {
       setStatus(loginStatus, error.message, true);
    }
@@ -438,6 +473,39 @@ async function markVisited() {
    }
 }
 
+async function saveCredentials(event) {
+   event.preventDefault();
+   const statusEl = document.getElementById("setPasswordStatus");
+   const email = pendingEmail || document.getElementById("setupEmail").value.trim();
+   const password = document.getElementById("newPassword").value;
+   const confirm = document.getElementById("confirmPassword").value;
+
+   if (!email) {
+      setStatus(statusEl, "Ange en e-postadress.", true);
+      return;
+   }
+   if (password.length < 8) {
+      setStatus(statusEl, "Lösenordet måste vara minst 8 tecken.", true);
+      return;
+   }
+   if (password !== confirm) {
+      setStatus(statusEl, "Lösenorden matchar inte.", true);
+      return;
+   }
+
+   setStatus(statusEl, "Sparar...");
+   try {
+      await apiFetch("/auth/register", {
+         method: "POST",
+         body: JSON.stringify({ email, password }),
+      });
+      setStatus(statusEl, "Konto klart! Du kan nu logga in på Mina Sidor.");
+      setTimeout(() => closeModal(visitorModal), 2000);
+   } catch (error) {
+      setStatus(statusEl, error.message, true);
+   }
+}
+
 openBtn.addEventListener("click", () => {
    openModal(visitorModal);
    ensureWidgetLoaded();
@@ -450,9 +518,16 @@ toMemberLink.addEventListener("click", (event) => {
    event.preventDefault();
    visitorModal.style.display = "none";
    openModal(memberModal);
+   showChatIfLoggedIn();
    if (sites.length) {
       renderMap("member-map-view", "member");
    }
+});
+
+document.getElementById("backToVisitorBtn").addEventListener("click", () => {
+   closeModal(memberModal);
+   openModal(visitorModal);
+   setTimeout(() => visitorMap?.invalidateSize(), 100);
 });
 
 bankidBtn.addEventListener("click", initiateBankId);
@@ -468,6 +543,7 @@ document.getElementById("chatInput").addEventListener("keydown", (event) => {
 cancelSubscriptionBtn.addEventListener("click", () => {
    setStatus(loginStatus, "Prenumerationen kan avslutas via betalningsmodulen.");
 });
+document.getElementById("setCredentialsForm").addEventListener("submit", saveCredentials);
 
 window.addEventListener("click", (event) => {
    if (event.target.classList.contains("modal-overlay")) {

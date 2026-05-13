@@ -78,10 +78,12 @@ def get_sites_near(lat=BORLANGE_LAT, lon=BORLANGE_LON, radius_km=DEFAULT_RADIUS_
     return nearby
 
 
-def chat_about_unesco(message: str, sites: list) -> str:
+def chat_about_unesco(message: str, sites: list, page_lang: str = "sv") -> str:
     """Svarar på frågor om världsarv med hjälp av Claude AI.
 
     Använder prompt caching för att slippa skicka platsdata varje gång.
+    page_lang är sidans språkkod (t.ex. "sv", "en", "ar") och styr
+    vilket språk AI:n svarar på tills användaren skriver på ett annat språk.
     """
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
@@ -107,18 +109,18 @@ def chat_about_unesco(message: str, sites: list) -> str:
             {
                 "type": "text",
                 "text": (
-                    "Du är en hjälpsam guide om UNESCO:s världsarv. "
-                    "Du svarar ENDAST på frågor som handlar om UNESCO, världsarv, kulturarv, naturarv eller specifika världsarvssajter. "
-                    "Om användaren frågar om något annat ämne svarar du: "
-                    "'Jag kan bara hjälpa till med frågor om UNESCO:s världsarv.' "
-                    "Svara alltid på samma språk som användaren skriver på. "
-                    "Håll svaren kortfattade och informativa."
+                    "You are a helpful guide about UNESCO World Heritage Sites. "
+                    "Only answer questions about UNESCO, World Heritage Sites, cultural heritage, or natural heritage. "
+                    "If the user asks about an unrelated topic, politely decline in their language. "
+                    f"Always respond in the SAME LANGUAGE as the user's message. "
+                    f"If you cannot detect the user's language, default to the page language with BCP-47 code: '{page_lang}'. "
+                    "Keep answers concise and informative."
                 ),
                 "cache_control": {"type": "ephemeral"},
             },
             {
                 "type": "text",
-                "text": f"Här är de närmaste världsarven:\n{sites_text}",
+                "text": f"Nearby World Heritage Sites:\n{sites_text}",
                 "cache_control": {"type": "ephemeral"},
             },
         ],

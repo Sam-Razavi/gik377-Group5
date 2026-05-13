@@ -14,6 +14,8 @@ from services.notification.config import (
     COOLDOWN_SMS_SECONDS,
     COOLDOWN_EMAIL_SECONDS,
     NOTIFICATION_MOCK_MODE,
+    SMS_MOCK_MODE,
+    EMAIL_MOCK_MODE,
     SITE_PAGE_BASE_URL,
 )
 from services.notification import db
@@ -24,13 +26,9 @@ logger = logging.getLogger("notification")
 # Initiera databasen vid import
 db.init_db()
 
-# Provider-instanser (kan bytas ut utan kodändringar i routes)
-if NOTIFICATION_MOCK_MODE or db.using_mock_storage():
-    sms_provider = MockSMSProvider()
-    email_provider = MockEmailProvider()
-else:
-    sms_provider = SMSProvider()
-    email_provider = EmailProvider()
+# Provider-instanser väljs per kanal baserat på tillgängliga credentials
+sms_provider = MockSMSProvider() if (SMS_MOCK_MODE or db.using_mock_storage()) else SMSProvider()
+email_provider = MockEmailProvider() if (EMAIL_MOCK_MODE or db.using_mock_storage()) else EmailProvider()
 
 VALID_TYPES = ("sms", "email")
 _PHONE_RE = re.compile(r"^\+?[0-9\s\-]{7,15}$")
@@ -133,12 +131,12 @@ def subscribe(user_id, phone=None, email=None, sites=None):
 
 
 def _send_welcome(sub, sites):
-    """Skickar välkomstmeddelande via SMS och/eller e-post."""
-    if sub.get("phone"):
+    """Skickar välkomstmeddelande via SMS och/eller e-post — bara om riktiga credentials finns."""
+    if sub.get("phone") and not SMS_MOCK_MODE:
         sms_provider.send(to=sub["phone"], message=messages.welcome_sms())
         logger.info("Välkomst-SMS skickat till %s", sub["phone"])
 
-    if sub.get("email"):
+    if sub.get("email") and not EMAIL_MOCK_MODE:
         email_provider.send(
             to=sub["email"],
             subject=messages.welcome_email_subject(),
