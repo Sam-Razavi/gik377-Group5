@@ -66,3 +66,6 @@ NOTIFICATION_MOCK_MODE = _explicit_mock or not bool(
     and PG_USER
     and PG_PASSWORD
 )
+
+_welcome_env = os.getenv("SEND_WELCOME_NOTIFICATIONS", "").lower()
+SEND_WELCOME_NOTIFICATIONS = _welcome_env in {"1", "true", "yes", "on"}

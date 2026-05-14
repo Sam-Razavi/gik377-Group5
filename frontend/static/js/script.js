@@ -68,11 +68,12 @@ function escapeHtml(value) {
 }
 
 async function apiFetch(path, options = {}) {
-   const { headers: extraHeaders, ...restOptions } = options;
+   const token = sessionStorage.getItem("auth_token");
    const response = await fetch(`${API_BASE}${path}`, {
       headers: {
          "Content-Type": "application/json",
-         ...(extraHeaders || {}),
+         ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+         ...(options.headers || {}),
       },
       ...restOptions,
    });
@@ -309,62 +310,403 @@ async function sendChatMessage() {
    output.scrollTop = output.scrollHeight;
 }
 
-function showMemberContent() {
-   document.getElementById("loginForm").hidden = true;
-   document.getElementById("twoFactorForm").hidden = true;
-   document.getElementById("memberInfoCard").hidden = false;
-   document.getElementById("memberMapSection").hidden = false;
+let _isBankIdUser = false;
+let _bankidInMemberModal = false;
+
+async function showLoggedIn(isBankId = false) {
+   _isBankIdUser = isBankId;
+   loginForm.hidden = true;
+   twoFactorForm.hidden = true;
+   setStatus(loginStatus, "");
+   document.getElementById("memberBankidSection").hidden = true;
+   document.getElementById("memberSiteCard").hidden = false;
+   document.getElementById("memberMapHeader").textContent = "Din Premium-karta";
+   document.getElementById("userInfoPanel").hidden = false;
    document.getElementById("chatbotContainer").hidden = false;
-   document.getElementById("accountManagement").hidden = false;
-   renderSiteSummary();
-   renderMap("member-map-view", "member");
+
+   try {
+      const user = await apiFetch("/auth/me");
+      document.getElementById("userNameDisplay").textContent = user.full_name || user.email;
+      document.getElementById("userEmailDisplay").textContent = user.full_name ? user.email : "";
+   } catch { /* token may not be set yet, ignore */ }
+
+   if (!isBankId) {
+      document.getElementById("twoFaPanel").hidden = false;
+      load2faStatus();
+   }
 }
 
-function showChatIfLoggedIn() {
-   if (sessionStorage.getItem("auth_token")) showMemberContent();
+function logout() {
+   sessionStorage.removeItem("auth_token");
+   _isBankIdUser = false;
+   _bankidInMemberModal = false;
+   document.getElementById("userInfoPanel").hidden = true;
+   document.getElementById("userNameDisplay").textContent = "";
+   document.getElementById("userEmailDisplay").textContent = "";
+   document.getElementById("chatbotContainer").hidden = true;
+   document.getElementById("twoFaPanel").hidden = true;
+   document.getElementById("twoFaSetupBox").hidden = true;
+   document.getElementById("twoFaDisableBox").hidden = true;
+   document.getElementById("twoFaQrCode").innerHTML = "";
+   document.getElementById("memberBankidSection").hidden = false;
+   document.getElementById("memberSiteCard").hidden = true;
+   document.getElementById("memberBankidChoicePanel").style.display = "none";
+   document.getElementById("memberBankidQrPanel").hidden = true;
+   document.getElementById("memberBankidQrCode").innerHTML = "";
+   document.getElementById("memberMapHeader").textContent = "Interaktiv karta";
+   loginForm.hidden = false;
+   loginForm.reset();
+   twoFactorForm.hidden = true;
+   setStatus(loginStatus, "Du är utloggad.");
 }
 
-async function initiateBankId() {
+async function load2faStatus() {
+   const twoFaStatus = document.getElementById("twoFaStatus");
+   try {
+      const result = await apiFetch("/auth/2fa/status");
+      const enabled = result.two_factor_enabled;
+      document.getElementById("twoFaStatusText").textContent = `Status: ${enabled ? "Aktiv" : "Inaktiv"}`;
+      const btn = document.getElementById("twoFaActionBtn");
+      btn.textContent = enabled ? "Inaktivera 2FA" : "Aktivera 2FA";
+      btn.dataset.enabled = String(enabled);
+      document.getElementById("twoFaSetupBox").hidden = true;
+      document.getElementById("twoFaDisableBox").hidden = true;
+      setStatus(twoFaStatus, "");
+   } catch (error) {
+      setStatus(twoFaStatus, error.message, true);
+   }
+}
+
+async function handle2faAction() {
+   const btn = document.getElementById("twoFaActionBtn");
+   const twoFaStatus = document.getElementById("twoFaStatus");
+
+   if (btn.dataset.enabled === "true") {
+      document.getElementById("twoFaDisableBox").hidden = false;
+      document.getElementById("twoFaSetupBox").hidden = true;
+      return;
+   }
+
+   try {
+      const result = await apiFetch("/auth/2fa/setup", { method: "POST" });
+      const qrEl = document.getElementById("twoFaQrCode");
+      qrEl.innerHTML = "";
+      new QRCode(qrEl, { text: result.provisioning_uri, width: 180, height: 180 });
+      document.getElementById("twoFaSetupBox").hidden = false;
+      document.getElementById("twoFaDisableBox").hidden = true;
+      setStatus(twoFaStatus, "Skanna QR-koden och ange koden nedan.");
+   } catch (error) {
+      setStatus(twoFaStatus, error.message, true);
+   }
+}
+
+async function verify2faEnable() {
+   const code = document.getElementById("twoFaCodeInput").value.trim();
+   const twoFaStatus = document.getElementById("twoFaStatus");
+   if (!code) return;
+   try {
+      await apiFetch("/auth/2fa/enable", { method: "POST", body: JSON.stringify({ code }) });
+      document.getElementById("twoFaCodeInput").value = "";
+      setStatus(twoFaStatus, "2FA aktiverat!");
+      load2faStatus();
+   } catch (error) {
+      setStatus(twoFaStatus, error.message, true);
+   }
+}
+
+async function verify2faDisable() {
+   const code = document.getElementById("twoFaDisableCodeInput").value.trim();
+   const twoFaStatus = document.getElementById("twoFaStatus");
+   if (!code) return;
+   try {
+      await apiFetch("/auth/2fa/disable", { method: "POST", body: JSON.stringify({ code }) });
+      document.getElementById("twoFaDisableCodeInput").value = "";
+      setStatus(twoFaStatus, "2FA inaktiverat.");
+      load2faStatus();
+   } catch (error) {
+      setStatus(twoFaStatus, error.message, true);
+   }
+}
+
+async function generateBankIdQrData(qrStartToken, qrStartSecret, seconds) {
+   const keyBytes = new Uint8Array(qrStartSecret.replace(/-/g, "").match(/.{2}/g).map(b => parseInt(b, 16)));
+   const key = await crypto.subtle.importKey(
+      "raw", keyBytes,
+      { name: "HMAC", hash: "SHA-256" }, false, ["sign"]
+   );
+   const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(String(seconds)));
+   const hex = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 8);
+   return `bankid.${qrStartToken}.${seconds}.${hex}`;
+}
+
+let _bankidPollTimer = null;
+let _bankidQrInterval = null;
+
+function _stopBankId() {
+   if (_bankidPollTimer) { clearTimeout(_bankidPollTimer); _bankidPollTimer = null; }
+   if (_bankidQrInterval) { clearInterval(_bankidQrInterval); _bankidQrInterval = null; }
+}
+
+function _hideBankIdChoice() {
+   document.getElementById("bankidChoicePanel").style.display = "none";
+}
+
+function _hideBankIdQr() {
+   if (_bankidInMemberModal) {
+      const panel = document.getElementById("memberBankidQrPanel");
+      panel.hidden = true;
+      document.getElementById("memberBankidQrCode").innerHTML = "";
+   } else {
+      const panel = document.getElementById("bankidQrPanel");
+      panel.hidden = true;
+      document.getElementById("bankidQrCode").innerHTML = "";
+   }
+   _stopBankId();
+}
+
+function _onBankIdComplete(accessToken) {
+   _stopBankId();
+   _hideBankIdQr();
+   if (accessToken) sessionStorage.setItem("auth_token", accessToken);
+   if (_bankidInMemberModal) {
+      setStatus(document.getElementById("memberBankidStatus"), "");
+      document.getElementById("memberBankidBtn").disabled = false;
+      showLoggedIn(true);
+      if (sites.length) renderMap("member-map-view", "member");
+   } else {
+      setStatus(widgetStatus, "Inloggad med BankID.");
+      bankidBtn.disabled = false;
+      closeModal(visitorModal);
+      openModal(memberModal);
+      showLoggedIn(true);
+      if (sites.length) renderMap("member-map-view", "member");
+   }
+}
+
+function _pollBankIdStatus(orderRef) {
+   const maxAttempts = 45;
+   let attempts = 0;
+
+   const poll = async () => {
+      const statusEl = _bankidInMemberModal ? document.getElementById("memberBankidStatus") : widgetStatus;
+      const activeBtn = _bankidInMemberModal ? document.getElementById("memberBankidBtn") : bankidBtn;
+
+      if (attempts >= maxAttempts) {
+         _stopBankId();
+         _hideBankIdQr();
+         setStatus(statusEl, "BankID tog för lång tid. Försök igen.", true);
+         activeBtn.disabled = false;
+         return;
+      }
+      attempts++;
+
+      try {
+         const status = await apiFetch(`/auth/bankid/status/${orderRef}`);
+
+         if (status.status === "complete") {
+            _onBankIdComplete(status.access_token);
+         } else if (status.status === "failed") {
+            _stopBankId();
+            _hideBankIdQr();
+            const reason = status.hintCode || status.errorCode || "okänt fel";
+            setStatus(statusEl, `BankID misslyckades: ${reason}`, true);
+            activeBtn.disabled = false;
+         } else {
+            const hint = status.hintCode ? ` (${status.hintCode})` : "";
+            setStatus(statusEl, `Väntar på BankID${hint}...`);
+            _bankidPollTimer = setTimeout(poll, 2000);
+         }
+      } catch (error) {
+         _stopBankId();
+         _hideBankIdQr();
+         setStatus(statusEl, error.message, true);
+         activeBtn.disabled = false;
+      }
+   };
+
+   _bankidPollTimer = setTimeout(poll, 2000);
+}
+
+function initiateBankId() {
+   document.getElementById("bankidChoicePanel").style.display = "flex";
+}
+
+async function startBankIdDevice() {
+   _bankidInMemberModal = false;
+   _hideBankIdChoice();
    setStatus(widgetStatus, "Öppnar BankID...");
    bankidBtn.disabled = true;
 
    try {
       const initiated = await apiFetch("/auth/bankid/initiate", { method: "POST" });
-      setTimeout(async () => {
-         try {
-            const status = await apiFetch(`/auth/bankid/status/${initiated.orderRef}`);
-            if (status.status === "complete") {
-               if (status.access_token) {
-                  sessionStorage.setItem("auth_token", status.access_token);
-               }
-               setStatus(widgetStatus, "Inloggad med BankID.");
-            } else {
-               setStatus(widgetStatus, `BankID status: ${status.status}`);
-            }
-         } catch (error) {
-            setStatus(widgetStatus, error.message, true);
-         } finally {
-            bankidBtn.disabled = false;
-         }
-      }, 2000);
+      const link = document.createElement("a");
+      link.href = `bankid:///autostarttoken=${initiated.autoStartToken}&redirect=null`;
+      link.style.display = "none";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      _pollBankIdStatus(initiated.orderRef);
    } catch (error) {
       setStatus(widgetStatus, error.message, true);
       bankidBtn.disabled = false;
    }
 }
 
+async function startBankIdMobile() {
+   _bankidInMemberModal = false;
+   _hideBankIdChoice();
+   setStatus(widgetStatus, "Förbereder QR-kod...");
+   bankidBtn.disabled = true;
+
+   try {
+      const initiated = await apiFetch("/auth/bankid/initiate", { method: "POST" });
+      const { orderRef } = initiated;
+
+      const qrPanel = document.getElementById("bankidQrPanel");
+      const qrEl = document.getElementById("bankidQrCode");
+      qrEl.innerHTML = "";
+      qrPanel.hidden = false;
+
+      let qrInstance = null;
+
+      const updateQr = async () => {
+         try {
+            const result = await apiFetch(`/auth/bankid/qr/${orderRef}`);
+            const qrData = result.qr_data;
+            if (qrInstance) {
+               qrInstance.clear();
+               qrInstance.makeCode(qrData);
+            } else {
+               qrInstance = new QRCode(qrEl, { text: qrData, width: 250, height: 250, correctLevel: QRCode.CorrectLevel.L });
+            }
+         } catch { /* ignore transient errors during QR refresh */ }
+      };
+
+      await updateQr();
+      _bankidQrInterval = setInterval(updateQr, 1000);
+      _pollBankIdStatus(orderRef);
+   } catch (error) {
+      setStatus(widgetStatus, error.message, true);
+      bankidBtn.disabled = false;
+   }
+}
+
+function initiateMemberBankId() {
+   document.getElementById("memberBankidChoicePanel").style.display = "flex";
+}
+
+function _hideMemberBankidChoice() {
+   document.getElementById("memberBankidChoicePanel").style.display = "none";
+}
+
+async function startMemberBankIdDevice() {
+   _bankidInMemberModal = true;
+   _hideMemberBankidChoice();
+   const statusEl = document.getElementById("memberBankidStatus");
+   const btn = document.getElementById("memberBankidBtn");
+   setStatus(statusEl, "Öppnar BankID...");
+   btn.disabled = true;
+
+   try {
+      const initiated = await apiFetch("/auth/bankid/initiate", { method: "POST" });
+      const link = document.createElement("a");
+      link.href = `bankid:///autostarttoken=${initiated.autoStartToken}&redirect=null`;
+      link.style.display = "none";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      _pollBankIdStatus(initiated.orderRef);
+   } catch (error) {
+      setStatus(statusEl, error.message, true);
+      btn.disabled = false;
+   }
+}
+
+async function startMemberBankIdMobile() {
+   _bankidInMemberModal = true;
+   _hideMemberBankidChoice();
+   const statusEl = document.getElementById("memberBankidStatus");
+   const btn = document.getElementById("memberBankidBtn");
+   setStatus(statusEl, "Förbereder QR-kod...");
+   btn.disabled = true;
+
+   try {
+      const initiated = await apiFetch("/auth/bankid/initiate", { method: "POST" });
+      const { orderRef } = initiated;
+
+      const qrPanel = document.getElementById("memberBankidQrPanel");
+      const qrEl = document.getElementById("memberBankidQrCode");
+      qrEl.innerHTML = "";
+      qrPanel.hidden = false;
+
+      let qrInstance = null;
+
+      const updateQr = async () => {
+         try {
+            const result = await apiFetch(`/auth/bankid/qr/${orderRef}`);
+            const qrData = result.qr_data;
+            if (qrInstance) {
+               qrInstance.clear();
+               qrInstance.makeCode(qrData);
+            } else {
+               qrInstance = new QRCode(qrEl, { text: qrData, width: 250, height: 250, correctLevel: QRCode.CorrectLevel.L });
+            }
+         } catch { /* ignore transient errors during QR refresh */ }
+      };
+
+      await updateQr();
+      _bankidQrInterval = setInterval(updateQr, 1000);
+      _pollBankIdStatus(orderRef);
+   } catch (error) {
+      setStatus(statusEl, error.message, true);
+      btn.disabled = false;
+   }
+}
+
 async function subscribe(event) {
    event.preventDefault();
    const phone = document.getElementById("phoneInput").value.trim();
+   const name = document.getElementById("nameInput").value.trim();
    const email = document.getElementById("emailInput").value.trim();
+   const password = document.getElementById("passwordInput").value;
    const method = document.getElementById("paymentMethod").value;
-   const userId = email || sessionStorage.getItem("user_email") || `guest_${Date.now()}`;
-   if (email) sessionStorage.setItem("user_email", email);
    const siteId = selectedSite ? getSiteId(selectedSite) : "unknown_site";
 
-   if (!phone && !email) {
-      setStatus(widgetStatus, "Ange mobilnummer eller e-post.", true);
-      return;
+   let userId = sessionStorage.getItem("auth_token");
+
+   if (!userId) {
+      if (!email) {
+         setStatus(widgetStatus, "Ange e-post för att skapa konto.", true);
+         return;
+      }
+      if (!password || password.length < 8) {
+         setStatus(widgetStatus, "Lösenordet måste vara minst 8 tecken.", true);
+         return;
+      }
+
+      setStatus(widgetStatus, "Skapar konto...");
+      try {
+         await apiFetch("/auth/register", {
+            method: "POST",
+            body: JSON.stringify({ email, password, full_name: name || null }),
+         });
+      } catch (error) {
+         setStatus(widgetStatus, error.message, true);
+         return;
+      }
+
+      setStatus(widgetStatus, "Loggar in...");
+      try {
+         const loginResult = await apiFetch("/auth/login", {
+            method: "POST",
+            body: JSON.stringify({ email, password }),
+         });
+         sessionStorage.setItem("auth_token", loginResult.access_token);
+         userId = loginResult.access_token;
+      } catch (error) {
+         setStatus(widgetStatus, error.message, true);
+         return;
+      }
    }
 
    setStatus(widgetStatus, "Aktiverar prenumeration...");
@@ -381,11 +723,7 @@ async function subscribe(event) {
 
       const payment = await apiFetch("/payment/create", {
          method: "POST",
-         body: JSON.stringify({
-            user_id: userId,
-            plan_id: method === "card" ? "price_1TRWexHYkj0fomnS4KMiKL6Q" : "invoice_basic",
-            method,
-         }),
+         body: JSON.stringify({ user_id: userId, plan_id: "plan_basic", method }),
       });
 
       if (method === "card" && payment.url) {
@@ -393,19 +731,13 @@ async function subscribe(event) {
          return;
       }
 
-      setStatus(widgetStatus, "Prenumeration aktiverad!");
-
-      pendingEmail = email || null;
-      const setupEmailGroup = document.getElementById("setupEmailGroup");
-      const setupEmailInput = document.getElementById("setupEmail");
-      if (pendingEmail) {
-         setupEmailInput.value = pendingEmail;
-         setupEmailGroup.hidden = true;
-      } else {
-         setupEmailGroup.hidden = false;
-      }
-      subscribeForm.hidden = true;
-      document.getElementById("setPasswordSection").hidden = false;
+      setStatus(widgetStatus, "Konto skapat och prenumeration aktiverad!");
+      setTimeout(() => {
+         closeModal(visitorModal);
+         openModal(memberModal);
+         showLoggedIn(false);
+         if (sites.length) renderMap("member-map-view", "member");
+      }, 1500);
    } catch (error) {
       setStatus(widgetStatus, error.message, true);
    }
@@ -434,7 +766,7 @@ async function login(event) {
       sessionStorage.setItem("auth_token", result.access_token);
       sessionStorage.setItem("user_email", document.getElementById("loginEmail").value.trim());
       setStatus(loginStatus, "Inloggad.");
-      showMemberContent();
+      showLoggedIn();
    } catch (error) {
       setStatus(loginStatus, error.message, true);
    }
@@ -453,9 +785,8 @@ async function completeTwoFactor(event) {
          }),
       });
       sessionStorage.setItem("auth_token", result.access_token);
-      twoFactorForm.hidden = true;
       setStatus(loginStatus, "Inloggad.");
-      showMemberContent();
+      showLoggedIn();
    } catch (error) {
       setStatus(loginStatus, error.message, true);
    }
@@ -539,6 +870,14 @@ document.getElementById("backToVisitorBtn").addEventListener("click", () => {
 });
 
 bankidBtn.addEventListener("click", initiateBankId);
+document.getElementById("bankidDeviceBtn").addEventListener("click", startBankIdDevice);
+document.getElementById("bankidMobileBtn").addEventListener("click", startBankIdMobile);
+document.getElementById("bankidQrCancelBtn").addEventListener("click", () => {
+   _hideBankIdQr();
+   bankidBtn.disabled = false;
+   setStatus(widgetStatus, "");
+   document.getElementById("bankidChoicePanel").style.display = "flex";
+});
 subscribeForm.addEventListener("submit", subscribe);
 loginForm.addEventListener("submit", login);
 twoFactorForm.addEventListener("submit", completeTwoFactor);
@@ -588,7 +927,23 @@ document.getElementById("confirmCancelYes").addEventListener("click", async () =
       setStatus(loginStatus, error.message, true);
    }
 });
-document.getElementById("setCredentialsForm").addEventListener("submit", saveCredentials);
+document.getElementById("backToVisitorBtn").addEventListener("click", () => {
+   closeModal(memberModal);
+   openModal(visitorModal);
+});
+document.getElementById("logoutBtn").addEventListener("click", logout);
+document.getElementById("twoFaActionBtn").addEventListener("click", handle2faAction);
+document.getElementById("twoFaVerifyBtn").addEventListener("click", verify2faEnable);
+document.getElementById("twoFaDisableVerifyBtn").addEventListener("click", verify2faDisable);
+document.getElementById("memberBankidBtn").addEventListener("click", initiateMemberBankId);
+document.getElementById("memberBankidDeviceBtn").addEventListener("click", startMemberBankIdDevice);
+document.getElementById("memberBankidMobileBtn").addEventListener("click", startMemberBankIdMobile);
+document.getElementById("memberBankidQrCancelBtn").addEventListener("click", () => {
+   _hideBankIdQr();
+   document.getElementById("memberBankidBtn").disabled = false;
+   setStatus(document.getElementById("memberBankidStatus"), "");
+   document.getElementById("memberBankidChoicePanel").style.display = "flex";
+});
 
 window.addEventListener("click", (event) => {
    if (event.target.classList.contains("modal-overlay")) {

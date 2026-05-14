@@ -419,6 +419,11 @@ body {
     transition: background 0.2s;
 }
 
+.btn-bankid img {
+    height: 20px;
+    width: auto;
+}
+
 .btn-bankid:hover {
     background: #f0f4ff;
 }

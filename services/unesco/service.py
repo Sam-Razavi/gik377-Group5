@@ -103,18 +103,22 @@ def chat_about_unesco(message: str, sites: list, page_lang: str = "sv") -> str:
     )
 
     response = client.messages.create(
-        model="claude-haiku-4-5",
+        model="claude-haiku-4-5-20251001",
         max_tokens=512,
         system=[
             {
                 "type": "text",
                 "text": (
-                    "You are a helpful guide about UNESCO World Heritage Sites. "
-                    "Only answer questions about UNESCO, World Heritage Sites, cultural heritage, or natural heritage. "
-                    "If the user asks about an unrelated topic, politely decline in their language. "
-                    f"Always respond in the SAME LANGUAGE as the user's message. "
-                    f"If you cannot detect the user's language, default to the page language with BCP-47 code: '{page_lang}'. "
-                    "Keep answers concise and informative."
+                    "Du är en hjälpsam guide om UNESCO:s världsarv. "
+                    "Du svarar ENDAST på frågor som handlar om UNESCO, världsarv, kulturarv, naturarv eller specifika världsarvssajter. "
+                    "Om användaren frågar om något annat ämne svarar du: "
+                    "'Jag kan bara hjälpa till med frågor om UNESCO:s världsarv.' "
+                    "Svara alltid på samma språk som användaren skriver på. "
+                    "Håll svaren kortfattade och informativa."
+                    "\n\nSVARA ALLTID på samma språk som användaren ställer sin fråga. "
+                    "Om frågan är på svenska, svara på svenska. "
+                    "Om frågan är på engelska, svara på engelska. "
+                    "Detektera användarens språk från frågan och matcha det exakt."
                 ),
                 "cache_control": {"type": "ephemeral"},
             },
