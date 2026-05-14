@@ -14,6 +14,7 @@ from services.notification.config import (
     COOLDOWN_SMS_SECONDS,
     COOLDOWN_EMAIL_SECONDS,
     NOTIFICATION_MOCK_MODE,
+    SEND_WELCOME_NOTIFICATIONS,
     SITE_PAGE_BASE_URL,
 )
 from services.notification import db
@@ -126,8 +127,12 @@ def subscribe(user_id, phone=None, email=None, sites=None):
     logger.info("Prenumeration uppdaterad för user=%s", user_id)
 
     # Skicka välkomstmeddelande vid ny prenumeration
-    if is_new:
+    if is_new and SEND_WELCOME_NOTIFICATIONS:
         _send_welcome(sub, sites)
+    elif is_new:
+        logger.info(
+            "Välkomstmeddelande hoppades över — sätt SEND_WELCOME_NOTIFICATIONS=true i .env för att aktivera."
+        )
 
     return {"success": True, "subscriber": sub}
 

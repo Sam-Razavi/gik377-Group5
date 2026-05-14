@@ -1,24 +1,59 @@
+import hashlib
+import hmac as _hmac
 import ssl
+import time
 
 import httpx
 from fastapi import HTTPException
 
 from core.config import settings
 
+# In-memory store: orderRef → {qrStartToken, qrStartSecret, started_at}
+_qr_sessions: dict[str, dict] = {}
+
+
+def _store_qr_session(order_ref: str, qr_start_token: str, qr_start_secret: str) -> None:
+    _qr_sessions[order_ref] = {
+        "qrStartToken": qr_start_token,
+        "qrStartSecret": qr_start_secret,
+        "started_at": time.monotonic(),
+    }
+
+
+def get_qr_data(order_ref: str) -> str | None:
+    session = _qr_sessions.get(order_ref)
+    if not session:
+        return None
+    seconds = int(time.monotonic() - session["started_at"])
+    auth_code = _hmac.new(
+        key=session["qrStartSecret"].encode("utf-8"),
+        msg=str(seconds).encode(),
+        digestmod=hashlib.sha256,
+    ).hexdigest()
+    return f"bankid.{session['qrStartToken']}.{seconds}.{auth_code}"
+
+
+def cleanup_qr_session(order_ref: str) -> None:
+    _qr_sessions.pop(order_ref, None)
+
 
 def create_ssl_context() -> ssl.SSLContext:
-    """
-    Creates an SSL context with:
-    - trusted BankID test CA
-    - client certificate (your .pem file)
-    """
-    context = ssl.create_default_context(cafile=settings.bankid_ca_file)
+    import os
 
+    if not settings.bankid_cert_file or not os.path.exists(settings.bankid_cert_file):
+        raise RuntimeError(
+            "BankID är inte i mock-läge men BANKID_CERT_FILE saknas eller finns inte. "
+            "Sätt BANKID_MOCK_MODE=true i .env för demo, eller ange giltiga certifikatfiler."
+        )
+    if not settings.bankid_ca_file or not os.path.exists(settings.bankid_ca_file):
+        raise RuntimeError(
+            "BankID CA-fil saknas: BANKID_CA_FILE pekar inte på en befintlig fil."
+        )
+    context = ssl.create_default_context(cafile=settings.bankid_ca_file)
     context.load_cert_chain(
         certfile=settings.bankid_cert_file,
         password=settings.bankid_cert_password,
     )
-
     return context
 
 
@@ -64,7 +99,9 @@ async def initiate_bankid_auth(personal_number: str | None = None) -> dict:
             detail=f"BankID SSL error: {str(e)}",
         )
 
-    return response.json()
+    data = response.json()
+    _store_qr_session(data["orderRef"], data["qrStartToken"], data["qrStartSecret"])
+    return data
 
 
 async def collect_bankid_status(order_ref: str) -> dict:

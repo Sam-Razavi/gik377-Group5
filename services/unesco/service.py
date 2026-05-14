@@ -101,7 +101,7 @@ def chat_about_unesco(message: str, sites: list) -> str:
     )
 
     response = client.messages.create(
-        model="claude-haiku-4-5",
+        model="claude-haiku-4-5-20251001",
         max_tokens=512,
         system=[
             {
@@ -113,6 +113,10 @@ def chat_about_unesco(message: str, sites: list) -> str:
                     "'Jag kan bara hjälpa till med frågor om UNESCO:s världsarv.' "
                     "Svara alltid på samma språk som användaren skriver på. "
                     "Håll svaren kortfattade och informativa."
+                    "\n\nSVARA ALLTID på samma språk som användaren ställer sin fråga. "
+                    "Om frågan är på svenska, svara på svenska. "
+                    "Om frågan är på engelska, svara på engelska. "
+                    "Detektera användarens språk från frågan och matcha det exakt."
                 ),
                 "cache_control": {"type": "ephemeral"},
             },
