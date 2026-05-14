@@ -123,11 +123,17 @@ def subscribe(user_id, phone=None, email=None, sites=None):
 
     logger.info("Prenumeration uppdaterad för user=%s", user_id)
 
-    # Skicka välkomstmeddelande vid ny prenumeration
-    if is_new:
-        _send_welcome(sub, sites)
-
     return {"success": True, "subscriber": sub}
+
+
+def send_welcome(email=None, phone=None, sites=None):
+    """Anropas efter lyckad kontoregistrering för att skicka välkomstmeddelande."""
+    sub = {"email": email, "phone": phone}
+    if email and not phone:
+        stored = db.get_subscriber(email)
+        if stored:
+            sub["phone"] = stored.get("phone")
+    _send_welcome(sub, sites)
 
 
 def _send_welcome(sub, sites):
@@ -160,12 +166,8 @@ def unsubscribe(user_id, sites=None):
 
 
 def _send_unsubscribe_confirmation(sub, sites):
-    """Skickar bekräftelse på avprenumeration."""
-    if sub.get("phone"):
-        sms_provider.send(to=sub["phone"], message=messages.unsubscribe_sms(sites))
-        logger.info("Avregistrerings-SMS skickat till %s", sub["phone"])
-
-    if sub.get("email"):
+    """Skickar avslutningsbekräftelse — endast via mail, inte SMS."""
+    if sub.get("email") and not EMAIL_MOCK_MODE:
         email_provider.send(
             to=sub["email"],
             subject=messages.unsubscribe_email_subject(),

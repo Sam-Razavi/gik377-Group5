@@ -18,8 +18,10 @@ from services.auth.schemas import (
     UserProfileUpdate,
     UserResponse,
 )
+from services.notification.service import send_welcome
 from services.auth.service import (
     complete_two_factor_login,
+    delete_user,
     disable_two_factor,
     enable_two_factor,
     get_current_user_from_token,
@@ -47,9 +49,19 @@ def get_current_user(
 def register(user_data: UserCreate, db: Session = Depends(get_db)):
     try:
         user = register_user(db, user_data)
+        send_welcome(email=user_data.email)
         return user
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.delete("/account")
+def delete_account(
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    delete_user(db, current_user)
+    return {"message": "Kontot har raderats."}
 
 
 @router.post("/login", response_model=LoginResponse)

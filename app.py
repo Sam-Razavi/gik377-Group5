@@ -70,19 +70,11 @@ app.add_middleware(
 
 
 # Enkel startsida för att snabbt se att backend kör.
-@app.get("/")
+@app.get("/", response_class=HTMLResponse)
 def read_root():
-    return {
-        "service": "Nordic Digital Solutions",
-        "status": "running",
-        "modules": [
-            "auth",
-            "unesco",
-            "notification",
-            "translation",
-            "payment",
-        ],
-    }
+    html_path = os.path.join("frontend", "templates", "index.html")
+    with open(html_path, encoding="utf-8") as f:
+        return f.read()
 
 
 # Health-check för test, felsökning och enkel kontroll av servern.

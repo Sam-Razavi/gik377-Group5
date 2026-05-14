@@ -130,16 +130,38 @@ def build_provider():
     """Bygg rätt provider.
 
     Prioritet:
-        1. OAuth 2.0 via GOOGLE_CLIENT_SECRET_FILE (kör browser-flöde första gången)
-        2. Service account via GOOGLE_APPLICATION_CREDENTIALS (ADC)
-        3. MockProvider (fallback utan credentials)
+        1. OAuth 2.0 via refresh token i miljövariabler (GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET + GOOGLE_REFRESH_TOKEN)
+        2. OAuth 2.0 via GOOGLE_CLIENT_SECRET_FILE
+        3. Service account via GOOGLE_APPLICATION_CREDENTIALS (ADC)
+        4. MockProvider (fallback utan credentials)
     """
-    client_secret = os.getenv("GOOGLE_CLIENT_SECRET_FILE")
-    if client_secret and os.path.exists(client_secret):
+    client_id = os.getenv("GOOGLE_CLIENT_ID")
+    client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
+    refresh_token = os.getenv("GOOGLE_REFRESH_TOKEN")
+    token_uri = os.getenv("GOOGLE_TOKEN_URI", "https://oauth2.googleapis.com/token")
+
+    if client_id and client_secret and refresh_token:
         try:
-            creds = _load_oauth_credentials(client_secret)
+            from google.oauth2.credentials import Credentials
+            creds = Credentials(
+                token=None,
+                refresh_token=refresh_token,
+                token_uri=token_uri,
+                client_id=client_id,
+                client_secret=client_secret,
+            )
             provider = GoogleTranslateProvider(credentials=creds)
-            logger.info("Translation provider: Google Cloud Translate (OAuth 2.0)")
+            logger.info("Translation provider: Google Cloud Translate (OAuth refresh token)")
+            return provider
+        except Exception as e:
+            logger.warning("OAuth refresh token misslyckades: %s", e)
+
+    client_secret_file = os.getenv("GOOGLE_CLIENT_SECRET_FILE")
+    if client_secret_file and os.path.exists(client_secret_file):
+        try:
+            creds = _load_oauth_credentials(client_secret_file)
+            provider = GoogleTranslateProvider(credentials=creds)
+            logger.info("Translation provider: Google Cloud Translate (OAuth 2.0 fil)")
             return provider
         except Exception as e:
             logger.warning("OAuth-initiering misslyckades, provar ADC: %s", e)

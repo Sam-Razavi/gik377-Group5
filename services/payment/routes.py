@@ -26,13 +26,20 @@ class CancelSubscriptionRequest(BaseModel):
 def payment_create(body: CreateSubscriptionRequest):
     """Skapa en prenumeration och returnera Stripe-checkout-URL."""
     try:
-        record = payment_service.create_subscription(body.user_id, body.plan_id, method=body.method)
+        if body.method == "card":
+            record = payment_service.create_checkout_session(
+                price_id=body.plan_id,
+                success_url="http://localhost:8000/payment/lyckades",
+                cancel_url="http://localhost:8000/payment/avbruten",
+            )
+        else:
+            record = payment_service.create_subscription(body.user_id, body.plan_id, method=body.method)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Betalning kunde inte skapas: {str(e)}")
 
-    return {"subscription_id": record["id"], "url": record.get("url"), "record": record}
+    return {"subscription_id": record.get("id"), "url": record.get("url"), "record": record}
 
 
 @router.post("/cancel")

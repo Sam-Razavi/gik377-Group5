@@ -68,12 +68,13 @@ function escapeHtml(value) {
 }
 
 async function apiFetch(path, options = {}) {
+   const { headers: extraHeaders, ...restOptions } = options;
    const response = await fetch(`${API_BASE}${path}`, {
       headers: {
          "Content-Type": "application/json",
-         ...(options.headers || {}),
+         ...(extraHeaders || {}),
       },
-      ...options,
+      ...restOptions,
    });
 
    let payload = null;
@@ -210,7 +211,7 @@ function renderSites() {
 
 function selectSite(site) {
    selectedSite = site;
-   languageSelect.value = "";
+   languageSelect.value = "sv";
    detailTitle.textContent = site.name_en || "UNESCO World Heritage Site";
    detailDescription.textContent =
       site.short_description_en || "Ingen beskrivning hittades i UNESCO-datat.";
@@ -219,6 +220,8 @@ function selectSite(site) {
    document.querySelectorAll(".site-card").forEach((card) => {
       card.classList.toggle("is-active", card.dataset.siteId === getSiteId(site));
    });
+
+   translateSelectedSite();
 }
 
 async function loadWidgetData() {
@@ -355,7 +358,8 @@ async function subscribe(event) {
    const phone = document.getElementById("phoneInput").value.trim();
    const email = document.getElementById("emailInput").value.trim();
    const method = document.getElementById("paymentMethod").value;
-   const userId = sessionStorage.getItem("auth_token") || `guest_${Date.now()}`;
+   const userId = email || sessionStorage.getItem("user_email") || `guest_${Date.now()}`;
+   if (email) sessionStorage.setItem("user_email", email);
    const siteId = selectedSite ? getSiteId(selectedSite) : "unknown_site";
 
    if (!phone && !email) {
@@ -379,7 +383,7 @@ async function subscribe(event) {
          method: "POST",
          body: JSON.stringify({
             user_id: userId,
-            plan_id: "plan_basic",
+            plan_id: method === "card" ? "price_1TRWexHYkj0fomnS4KMiKL6Q" : "invoice_basic",
             method,
          }),
       });
@@ -428,6 +432,7 @@ async function login(event) {
       }
 
       sessionStorage.setItem("auth_token", result.access_token);
+      sessionStorage.setItem("user_email", document.getElementById("loginEmail").value.trim());
       setStatus(loginStatus, "Inloggad.");
       showMemberContent();
    } catch (error) {
@@ -500,7 +505,10 @@ async function saveCredentials(event) {
          body: JSON.stringify({ email, password }),
       });
       setStatus(statusEl, "Konto klart! Du kan nu logga in på Mina Sidor.");
-      setTimeout(() => closeModal(visitorModal), 2000);
+      setTimeout(() => {
+         visitorModal.style.display = "none";
+         openModal(memberModal);
+      }, 2000);
    } catch (error) {
       setStatus(statusEl, error.message, true);
    }
@@ -541,7 +549,44 @@ document.getElementById("chatInput").addEventListener("keydown", (event) => {
    if (event.key === "Enter") sendChatMessage();
 });
 cancelSubscriptionBtn.addEventListener("click", () => {
-   setStatus(loginStatus, "Prenumerationen kan avslutas via betalningsmodulen.");
+   document.getElementById("cancelConfirm").hidden = false;
+});
+
+document.getElementById("confirmCancelNo").addEventListener("click", () => {
+   document.getElementById("cancelConfirm").hidden = true;
+});
+
+document.getElementById("confirmCancelYes").addEventListener("click", async () => {
+   const token = sessionStorage.getItem("auth_token");
+   if (!token) {
+      setStatus(loginStatus, "Du är inte inloggad.", true);
+      return;
+   }
+   const userEmail = sessionStorage.getItem("user_email");
+   try {
+      setStatus(loginStatus, "Avslutar prenumeration...");
+      document.getElementById("cancelConfirm").hidden = true;
+      if (userEmail) {
+         await apiFetch("/api/notification/unsubscribe", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ user_id: userEmail }),
+         });
+      }
+      await apiFetch("/auth/account", {
+         method: "DELETE",
+         headers: { Authorization: `Bearer ${token}` },
+      });
+      sessionStorage.removeItem("auth_token");
+      sessionStorage.removeItem("user_email");
+      document.getElementById("setPasswordSection").hidden = true;
+      document.getElementById("subscribeForm").hidden = false;
+      document.getElementById("widgetStatus").textContent = "";
+      closeModal(memberModal);
+      openModal(visitorModal);
+   } catch (error) {
+      setStatus(loginStatus, error.message, true);
+   }
 });
 document.getElementById("setCredentialsForm").addEventListener("submit", saveCredentials);
 
