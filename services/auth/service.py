@@ -257,6 +257,11 @@ def complete_two_factor_login(
     }
 
 
+def delete_user(db: Session, user: User) -> None:
+    db.delete(user)
+    db.commit()
+
+
 def update_user_profile(
     db: Session,
     user: User,

@@ -3,6 +3,8 @@ const API_BASE =
       ? window.location.origin
       : "http://localhost:8000";
 
+const PAGE_LANG = document.documentElement.lang || "sv";
+
 const DEFAULT_POSITION = { lat: 60.4858, lon: 15.4358 };
 const SEARCH_RADIUS_KM = 150;
 
@@ -36,6 +38,7 @@ let visitorMap = null;
 let memberMap = null;
 let tempToken = null;
 let widgetLoaded = false;
+let pendingEmail = null;
 
 function openModal(modal) {
    lastFocusedElement = document.activeElement;
@@ -72,7 +75,7 @@ async function apiFetch(path, options = {}) {
          ...(token ? { "Authorization": `Bearer ${token}` } : {}),
          ...(options.headers || {}),
       },
-      ...options,
+      ...restOptions,
    });
 
    let payload = null;
@@ -209,7 +212,7 @@ function renderSites() {
 
 function selectSite(site) {
    selectedSite = site;
-   languageSelect.value = "";
+   languageSelect.value = "sv";
    detailTitle.textContent = site.name_en || "UNESCO World Heritage Site";
    detailDescription.textContent =
       site.short_description_en || "Ingen beskrivning hittades i UNESCO-datat.";
@@ -218,6 +221,8 @@ function selectSite(site) {
    document.querySelectorAll(".site-card").forEach((card) => {
       card.classList.toggle("is-active", card.dataset.siteId === getSiteId(site));
    });
+
+   translateSelectedSite();
 }
 
 async function loadWidgetData() {
@@ -285,14 +290,17 @@ async function sendChatMessage() {
    input.value = "";
    output.scrollTop = output.scrollHeight;
 
+   const token = sessionStorage.getItem("auth_token");
    try {
       const result = await apiFetch("/unesco/chat", {
          method: "POST",
+         headers: token ? { Authorization: `Bearer ${token}` } : {},
          body: JSON.stringify({
             message,
             lat: currentPosition.lat,
             lon: currentPosition.lon,
             radius: SEARCH_RADIUS_KM,
+            page_lang: PAGE_LANG,
          }),
       });
       output.innerHTML = output.innerHTML.replace("Laddar...", escapeHtml(result.answer));
@@ -756,6 +764,7 @@ async function login(event) {
       }
 
       sessionStorage.setItem("auth_token", result.access_token);
+      sessionStorage.setItem("user_email", document.getElementById("loginEmail").value.trim());
       setStatus(loginStatus, "Inloggad.");
       showLoggedIn();
    } catch (error) {
@@ -800,6 +809,42 @@ async function markVisited() {
    }
 }
 
+async function saveCredentials(event) {
+   event.preventDefault();
+   const statusEl = document.getElementById("setPasswordStatus");
+   const email = pendingEmail || document.getElementById("setupEmail").value.trim();
+   const password = document.getElementById("newPassword").value;
+   const confirm = document.getElementById("confirmPassword").value;
+
+   if (!email) {
+      setStatus(statusEl, "Ange en e-postadress.", true);
+      return;
+   }
+   if (password.length < 8) {
+      setStatus(statusEl, "Lösenordet måste vara minst 8 tecken.", true);
+      return;
+   }
+   if (password !== confirm) {
+      setStatus(statusEl, "Lösenorden matchar inte.", true);
+      return;
+   }
+
+   setStatus(statusEl, "Sparar...");
+   try {
+      await apiFetch("/auth/register", {
+         method: "POST",
+         body: JSON.stringify({ email, password }),
+      });
+      setStatus(statusEl, "Konto klart! Du kan nu logga in på Mina Sidor.");
+      setTimeout(() => {
+         visitorModal.style.display = "none";
+         openModal(memberModal);
+      }, 2000);
+   } catch (error) {
+      setStatus(statusEl, error.message, true);
+   }
+}
+
 openBtn.addEventListener("click", () => {
    openModal(visitorModal);
    ensureWidgetLoaded();
@@ -812,9 +857,16 @@ toMemberLink.addEventListener("click", (event) => {
    event.preventDefault();
    visitorModal.style.display = "none";
    openModal(memberModal);
+   showChatIfLoggedIn();
    if (sites.length) {
       renderMap("member-map-view", "member");
    }
+});
+
+document.getElementById("backToVisitorBtn").addEventListener("click", () => {
+   closeModal(memberModal);
+   openModal(visitorModal);
+   setTimeout(() => visitorMap?.invalidateSize(), 100);
 });
 
 bankidBtn.addEventListener("click", initiateBankId);
@@ -836,7 +888,44 @@ document.getElementById("chatInput").addEventListener("keydown", (event) => {
    if (event.key === "Enter") sendChatMessage();
 });
 cancelSubscriptionBtn.addEventListener("click", () => {
-   setStatus(loginStatus, "Prenumerationen kan avslutas via betalningsmodulen.");
+   document.getElementById("cancelConfirm").hidden = false;
+});
+
+document.getElementById("confirmCancelNo").addEventListener("click", () => {
+   document.getElementById("cancelConfirm").hidden = true;
+});
+
+document.getElementById("confirmCancelYes").addEventListener("click", async () => {
+   const token = sessionStorage.getItem("auth_token");
+   if (!token) {
+      setStatus(loginStatus, "Du är inte inloggad.", true);
+      return;
+   }
+   const userEmail = sessionStorage.getItem("user_email");
+   try {
+      setStatus(loginStatus, "Avslutar prenumeration...");
+      document.getElementById("cancelConfirm").hidden = true;
+      if (userEmail) {
+         await apiFetch("/api/notification/unsubscribe", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ user_id: userEmail }),
+         });
+      }
+      await apiFetch("/auth/account", {
+         method: "DELETE",
+         headers: { Authorization: `Bearer ${token}` },
+      });
+      sessionStorage.removeItem("auth_token");
+      sessionStorage.removeItem("user_email");
+      document.getElementById("setPasswordSection").hidden = true;
+      document.getElementById("subscribeForm").hidden = false;
+      document.getElementById("widgetStatus").textContent = "";
+      closeModal(memberModal);
+      openModal(visitorModal);
+   } catch (error) {
+      setStatus(loginStatus, error.message, true);
+   }
 });
 document.getElementById("backToVisitorBtn").addEventListener("click", () => {
    closeModal(memberModal);

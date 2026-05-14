@@ -109,8 +109,8 @@
                   <div class="form-group">
                      <label for="languageSelect">Språk</label>
                      <select id="languageSelect">
-                        <option value="">Original</option>
-                        <option value="sv">Svenska</option>
+                        <option value="sv" selected>Svenska</option>
+                        <option value="">Original (engelska)</option>
                         <option value="en">English</option>
                         <option value="ja">日本語</option>
                         <option value="ar">العربية</option>
@@ -168,6 +168,27 @@
                      Redan medlem? <a href="#" id="toMemberView">Mina Sidor / Logga in</a>
                   </div>
                </div>
+
+               <div id="setPasswordSection" hidden>
+                  <h4>Slutför ditt konto</h4>
+                  <p style="font-size:0.9rem;margin-bottom:1rem;">Ditt konto är skapat. Välj inloggningsuppgifter för att komma åt Mina Sidor.</p>
+                  <form id="setCredentialsForm">
+                     <div class="form-group" id="setupEmailGroup">
+                        <label for="setupEmail">E-postadress (användarnamn)</label>
+                        <input type="email" id="setupEmail" placeholder="namn@exempel.se" />
+                     </div>
+                     <div class="form-group">
+                        <label for="newPassword">Välj lösenord</label>
+                        <input type="password" id="newPassword" placeholder="Minst 8 tecken" />
+                     </div>
+                     <div class="form-group">
+                        <label for="confirmPassword">Bekräfta lösenord</label>
+                        <input type="password" id="confirmPassword" placeholder="Upprepa lösenordet" />
+                     </div>
+                     <button class="btn-primary" type="submit">Spara och fortsätt</button>
+                  </form>
+                  <div class="form-status" id="setPasswordStatus" aria-live="polite"></div>
+               </div>
             </div>
          </div>
       </div>
@@ -176,6 +197,7 @@
          <div class="modal-window">
             <button class="close-modal" id="closeMemberBtn" aria-label="Stäng fönster">&times;</button>
             <div class="modal-header" style="background: var(--unesco-dark)">
+               <button id="backToVisitorBtn" aria-label="Tillbaka" style="background:none;border:none;color:white;font-size:1.2rem;cursor:pointer;margin-right:0.75rem;padding:0;">&#8592;</button>
                <div class="fake-logo-small" aria-hidden="true">AV</div>
                <div>
                   <h2 id="memberTitle" style="margin: 0">Mina Sidor</h2>
@@ -292,8 +314,15 @@
                   </div>
                </div>
 
-               <div class="account-management">
+               <div class="account-management" id="accountManagement" hidden>
                   <button class="btn-cancel" id="cancelSubscriptionBtn" type="button">Avsluta prenumeration</button>
+                  <div id="cancelConfirm" hidden style="margin-top:12px;padding:14px;background:#fff3f3;border:1px solid #f5c6cb;border-radius:8px;">
+                     <p style="margin:0 0 10px;font-size:0.9rem;">Är du säker på att du vill avsluta din prenumeration?</p>
+                     <div style="display:flex;gap:10px;">
+                        <button class="btn-primary" id="confirmCancelYes" type="button" style="background:#dc3545;">Ja, avsluta</button>
+                        <button class="btn-primary" id="confirmCancelNo" type="button" style="background:#6c757d;">Nej, behåll</button>
+                     </div>
+                  </div>
                </div>
             </div>
          </div>

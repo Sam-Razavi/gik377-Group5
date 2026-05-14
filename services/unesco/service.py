@@ -78,10 +78,12 @@ def get_sites_near(lat=BORLANGE_LAT, lon=BORLANGE_LON, radius_km=DEFAULT_RADIUS_
     return nearby
 
 
-def chat_about_unesco(message: str, sites: list) -> str:
+def chat_about_unesco(message: str, sites: list, page_lang: str = "sv") -> str:
     """Svarar på frågor om världsarv med hjälp av Claude AI.
 
     Använder prompt caching för att slippa skicka platsdata varje gång.
+    page_lang är sidans språkkod (t.ex. "sv", "en", "ar") och styr
+    vilket språk AI:n svarar på tills användaren skriver på ett annat språk.
     """
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
@@ -122,7 +124,7 @@ def chat_about_unesco(message: str, sites: list) -> str:
             },
             {
                 "type": "text",
-                "text": f"Här är de närmaste världsarven:\n{sites_text}",
+                "text": f"Nearby World Heritage Sites:\n{sites_text}",
                 "cache_control": {"type": "ephemeral"},
             },
         ],

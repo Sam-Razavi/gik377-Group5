@@ -54,7 +54,12 @@ PG_USER = os.getenv("NOTIFICATION_PG_USER", "")
 PG_PASSWORD = os.getenv("NOTIFICATION_PG_PASSWORD", "")
 
 _mock_mode_env = os.getenv("NOTIFICATION_MOCK_MODE", "").lower()
-NOTIFICATION_MOCK_MODE = _mock_mode_env in {"1", "true", "yes", "on"} or not bool(
+_explicit_mock = _mock_mode_env in {"1", "true", "yes", "on"}
+
+SMS_MOCK_MODE = _explicit_mock or not bool(HELLOSMS_USERNAME and HELLOSMS_PASSWORD)
+EMAIL_MOCK_MODE = _explicit_mock or not bool(SMTP2GO_API_KEY)
+
+NOTIFICATION_MOCK_MODE = _explicit_mock or not bool(
     HELLOSMS_USERNAME
     and HELLOSMS_PASSWORD
     and SMTP2GO_API_KEY

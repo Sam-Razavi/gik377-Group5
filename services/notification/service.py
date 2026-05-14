@@ -25,13 +25,9 @@ logger = logging.getLogger("notification")
 # Initiera databasen vid import
 db.init_db()
 
-# Provider-instanser (kan bytas ut utan kodändringar i routes)
-if NOTIFICATION_MOCK_MODE or db.using_mock_storage():
-    sms_provider = MockSMSProvider()
-    email_provider = MockEmailProvider()
-else:
-    sms_provider = SMSProvider()
-    email_provider = EmailProvider()
+# Provider-instanser väljs per kanal baserat på tillgängliga credentials
+sms_provider = MockSMSProvider() if (SMS_MOCK_MODE or db.using_mock_storage()) else SMSProvider()
+email_provider = MockEmailProvider() if (EMAIL_MOCK_MODE or db.using_mock_storage()) else EmailProvider()
 
 VALID_TYPES = ("sms", "email")
 _PHONE_RE = re.compile(r"^\+?[0-9\s\-]{7,15}$")
@@ -137,13 +133,23 @@ def subscribe(user_id, phone=None, email=None, sites=None):
     return {"success": True, "subscriber": sub}
 
 
+def send_welcome(email=None, phone=None, sites=None):
+    """Anropas efter lyckad kontoregistrering för att skicka välkomstmeddelande."""
+    sub = {"email": email, "phone": phone}
+    if email and not phone:
+        stored = db.get_subscriber(email)
+        if stored:
+            sub["phone"] = stored.get("phone")
+    _send_welcome(sub, sites)
+
+
 def _send_welcome(sub, sites):
-    """Skickar välkomstmeddelande via SMS och/eller e-post."""
-    if sub.get("phone"):
+    """Skickar välkomstmeddelande via SMS och/eller e-post — bara om riktiga credentials finns."""
+    if sub.get("phone") and not SMS_MOCK_MODE:
         sms_provider.send(to=sub["phone"], message=messages.welcome_sms())
         logger.info("Välkomst-SMS skickat till %s", sub["phone"])
 
-    if sub.get("email"):
+    if sub.get("email") and not EMAIL_MOCK_MODE:
         email_provider.send(
             to=sub["email"],
             subject=messages.welcome_email_subject(),
@@ -167,12 +173,8 @@ def unsubscribe(user_id, sites=None):
 
 
 def _send_unsubscribe_confirmation(sub, sites):
-    """Skickar bekräftelse på avprenumeration."""
-    if sub.get("phone"):
-        sms_provider.send(to=sub["phone"], message=messages.unsubscribe_sms(sites))
-        logger.info("Avregistrerings-SMS skickat till %s", sub["phone"])
-
-    if sub.get("email"):
+    """Skickar avslutningsbekräftelse — endast via mail, inte SMS."""
+    if sub.get("email") and not EMAIL_MOCK_MODE:
         email_provider.send(
             to=sub["email"],
             subject=messages.unsubscribe_email_subject(),
